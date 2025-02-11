@@ -5,9 +5,6 @@ import time
 
 from temp import *
 
-while True:
-    print("starting server...")
-    time.sleep(10)
 
 async def handler(websocket, path):
     async for message in websocket:
