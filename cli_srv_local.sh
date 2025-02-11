@@ -7,7 +7,7 @@ server_file_path="server_robot.sh"
 client_path="path/to/client.py"
 local_env_name="piper"
 
-ssh ${server_ip} "cd ${ws_path} && source ${server_file_path}"
+ssh ${server_ip} "source ~/.bashrc && cd ${ws_path} && source ${server_file_path}"
 
 conda activate ${local_env_name}
 python ${client_path}
