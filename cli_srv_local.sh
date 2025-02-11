@@ -7,5 +7,5 @@ server_file_path="server_robot.sh"
 client_path="client_robot.py"
 local_env_name="piper"
 
-conda run -n ${local_env_name} python ${client_path} &
+conda run -n ${local_env_name} python ${client_path} 
 ssh ${server_ip} "cd ${ws_path} && source ${server_file_path}"

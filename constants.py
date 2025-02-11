@@ -1,4 +1,5 @@
 FPS = 30
+SERVER_IP = "147.47.239.153"
 
 class Config:
     def __init__(self):
