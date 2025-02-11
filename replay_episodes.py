@@ -8,6 +8,7 @@ import numpy as np
 from piper_sdk import *
 from constants import *
 
+
 def enable_fun(piper: C_PiperInterface):
     enable_flag = False
     elapsed_time_flag = False
@@ -67,6 +68,8 @@ def main(args):
 
     if control_mode == 'JointCtrl':
         for i in range(len(joint_data)):
+            t_before_act = time.time()
+
             joint_1 = joint_data[i][0]
             joint_2 = joint_data[i][1]
             joint_3 = joint_data[i][2]
@@ -77,21 +80,20 @@ def main(args):
             gripper_angle = gripper_data[i][0]
             gripper_effort = gripper_data[i][1]
 
-            t_before_act = time.time()
-
             piper.MotionCtrl_2(0x01, 0x01, 20, 0x00)
             piper.JointCtrl(joint_1, joint_2, joint_3, joint_4, joint_5, joint_6)
             piper.GripperCtrl(abs(gripper_angle), gripper_effort, 0x01, 0)
 
+            time.sleep(1/fps)
             t_after_act = time.time()
             record_act_time.append(t_after_act - t_before_act)
-
-            time.sleep(1/fps)
 
         print(f"average time on robot actuation : {np.mean(record_act_time)}")
 
     elif control_mode == 'EndPoseCtrl':
         for i in range(len(end_pose_data)):
+            t_before_act = time.time()
+
             x = end_pose_data[i][0]
             y = end_pose_data[i][1]
             z = end_pose_data[i][2]
@@ -102,16 +104,14 @@ def main(args):
             gripper_angle = gripper_data[i][0]
             gripper_effort = gripper_data[i][1]
 
-            t_before_act = time.time()
-
             piper.MotionCtrl_2(0x01, 0x00, 20, 0x00)
             piper.EndPoseCtrl(x, y, z, rx, ry, rz)
             piper.GripperCtrl(abs(gripper_angle), gripper_effort, 0x01, 0)
 
+            time.sleep(1 / fps)
+
             t_after_act = time.time()
             record_act_time.append(t_after_act - t_before_act)
-
-            time.sleep(1 / fps)
 
         print(f"average time on robot actuation : {np.mean(record_act_time)}")
 

@@ -1,13 +1,13 @@
 #!/bin/bash
 
 server_ip="mjbae@147.47.239.153"
-server_path="path/to/server.py"
-server_env_name="robot"
+ws_path="~/codes/islab_ws/ISLRO"
+server_file_path="server_robot.sh"
 
 client_path="path/to/client.py"
-client_env_name="piper"
+local_env_name="piper"
 
-ssh server_ip "conda activate ${server_env_name}&&python server_path"
+ssh ${server_ip} "cd ${ws_path} && source ${server_file_path}"
 
-conda activate ${client_env_name}
+conda activate ${local_env_name}
 python ${client_path}

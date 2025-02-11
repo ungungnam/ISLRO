@@ -1,5 +1,3 @@
-##########Loading Image and Joint data##########
-
 import argparse
 import os
 import time
