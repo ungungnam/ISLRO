@@ -5,6 +5,7 @@ import time
 
 from temp import *
 from constants import *
+from server_utils import *
 
 server_ip = SERVER_IP
 
@@ -13,7 +14,7 @@ async def handler(websocket, path):
 
     while True:
         async for data in websocket:
-            input = process_dataset(data)
+            input = process_data(data)
             output = model_for_inference(input)
 
             await websocket.send(output)
