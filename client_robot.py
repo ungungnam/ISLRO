@@ -1,8 +1,14 @@
 import asyncio
 import websockets
 import json
+import time
 
 from temp import *
+
+
+while True:
+    print("starting client...")
+    time.sleep(20)
 
 async def send_data():
     print("Sending data")
