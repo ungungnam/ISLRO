@@ -14,10 +14,13 @@ async def handler(websocket, path):
 
     while True:
         async for data in websocket:
-            input = process_data(data)
-            output = model_for_inference(input)
+            if data == 'hello server':
+                await websocket.send("hello client")
 
-            await websocket.send(output)
+            # input = process_data(data)
+            # output = model_for_inference(input)
+            #
+            # await websocket.send(output)
 
 
 async def main():

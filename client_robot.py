@@ -11,14 +11,12 @@ server_ip = SERVER_IP
 
 async def send_data(uri, dataset_path):
     async with websockets.connect(uri) as websocket:
-        dataset = get_data(dataset_path)
-        for data in dataset:
-            request = make_request(data)
+        # dataset = get_data(dataset_path)
+        dataset = "hello server"
 
-            await websocket.send(request)
-
-            response = await websocket.recv()
-            actuate_response(response)
+        await websocket.send(dataset)
+        response = await websocket.recv()
+        print(response)
 
 
 async def main():
