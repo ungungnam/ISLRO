@@ -14,7 +14,7 @@ async def send_data():
 
     async with websockets.connect(uri) as websocket:
         record_send_time = []
-        for i in range (50):
+        for i in range (10):
             t_before = time.time()
             # 예제 입력 데이터 (사용자가 원하는 방식으로 생성 가능) (image + joint)
             input_data = {"sensor1": i, "sensor2": i*2, "sensor3": i*3}
