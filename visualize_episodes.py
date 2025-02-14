@@ -11,7 +11,7 @@ JOINT_LEGEND = ("joint 1", "joint 2", "joint 3", "joint 4", "joint 5", "joint 6"
 END_POSE_LEGEND = ("X", "Y", "Z", "RX", "RY", "RZ")
 
 def find_dataset(episode_name):
-    dataset_path = os.path.join('/home/islab/islab_ws/dataset', f'episode_{episode_name}.h5')
+    dataset_path = os.path.join('/home/islab/islab_ws/ISLRO/dataset', f'episode_{episode_name}.h5')
     if not os.path.exists(dataset_path):
         print(f'Dataset {dataset_path} not found.')
         return False
@@ -64,7 +64,7 @@ def plot_robot(robot_data, episode_name):
     ax.set_zlim([-500000, 500000])
     plt.grid(True)
 
-    save_path = f'/home/islab/islab_ws/dataset/episode_{episode_name}.png'
+    save_path = f'/home/islab/islab_ws/ISLRO/dataset/episode_{episode_name}.png'
     plt.savefig(save_path)
     # plt.show()
     print(f'Saved episode_{episode_name}.png')

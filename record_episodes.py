@@ -18,12 +18,12 @@ def capture_episode(task_config, episode_name):
     piper.ConnectPort()
 
     pipeline = rs.pipeline()
-    rs_config = rs.config()
+    # rs_config = rs.config()
 
-    rs_config.enable_stream(rs.stream.depth,)
-    rs_config.enable_stream(rs.stream.color,)
+    # rs_config.enable_stream(rs.stream.depth,)
+    # rs_config.enable_stream(rs.stream.color,)
 
-    pipeline.start(rs_config)
+    # pipeline.start(rs_config)
 
     dataset_dir = task_config["DATASET_DIR"]
     if not os.path.isdir(dataset_dir):
@@ -48,7 +48,7 @@ def capture_episode(task_config, episode_name):
         t1 = time.time()
 
         record_robot_time.append(t_robot-t0)
-        record_image_time.append(t1-t0)
+        record_image_time.append(t1-t_robot)
 
         data = {
             "index": t,
@@ -67,6 +67,7 @@ def capture_episode(task_config, episode_name):
         robot_group = f.create_group("robot")
         image_group = f.create_group("image")
 
+        index, timestamp_data = [], []
         joint_data, end_pose_data, gripper_data, image_data = [], [], [], []
         while dataset:
             data = dataset.pop(0)
@@ -79,11 +80,13 @@ def capture_episode(task_config, episode_name):
             gripper = data["robot"]["gripper_data"]
             image = data["image"]
 
+            timestamp_data.append(timestamp)
             joint_data.append(joint)
             end_pose_data.append(end_pose)
             gripper_data.append(gripper)
             image_data.append(image)
 
+        f.create_dataset(name=f"timestamp", data=timestamp_data)
         robot_group.create_dataset(name=f'joint_data', data=joint_data)
         robot_group.create_dataset(name=f'end_pose_data', data=end_pose_data)
         robot_group.create_dataset(name=f'gripper_data', data=gripper_data)

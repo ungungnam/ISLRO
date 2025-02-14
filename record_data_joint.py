@@ -1,4 +1,9 @@
 def record_real_data_joint(piper):
+    '''
+
+    :param piper:
+    :return: robot_data: {joint_data, gripper_data, end_pose_data}
+    '''
 
     # Get the joint and gripper control data
     joints = piper.GetArmJointCtrl().joint_ctrl
