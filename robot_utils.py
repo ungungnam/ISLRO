@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import h5py
 from constants import *
 
 def setZeroConfiguration(piper):
@@ -71,3 +72,17 @@ def isMoved(piper, prev_data=None):
     else:
         print('NOT MOVED!')
         return False
+
+
+def load_h5_data(file_name):
+    try:
+        with h5py.File(file_name, 'r') as f:
+            # print(list(f['robot'].keys()))
+            robot_group = f['robot']
+            joint_data = robot_group['joint_data'][:]
+            gripper_data = robot_group['gripper_data'][:]
+            end_pose_data = robot_group['end_pose_data'][:]
+
+        return joint_data, gripper_data, end_pose_data
+    except:
+        raise Exception("The file " + file_name + " does not exist")
