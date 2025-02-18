@@ -1,38 +1,15 @@
+from robot_utils import *
+
+
 def record_real_data_joint(piper):
     '''
 
     :param piper:
     :return: robot_data: {joint_data, gripper_data, end_pose_data}
     '''
-
-    # Get the joint and gripper control data
-    joints = piper.GetArmJointCtrl().joint_ctrl
-    grippers = piper.GetArmGripperCtrl().gripper_ctrl
-    end_pose = piper.GetArmEndPoseMsgs().end_pose
-
-    # Prepare the data as a dictionary
-    joint_data = [
-        joints.joint_1,
-        joints.joint_2,
-        joints.joint_3,
-        joints.joint_4,
-        joints.joint_5,
-        joints.joint_6,
-    ]
-
-    gripper_data = [
-        grippers.grippers_angle,
-        grippers.grippers_effort,
-    ]
-
-    end_pose_data = [
-        end_pose.X_axis,
-        end_pose.Y_axis,
-        end_pose.Z_axis,
-        end_pose.RX_axis,
-        end_pose.RY_axis,
-        end_pose.RZ_axis,
-    ]
+    joint_data = readJointCtrl(piper)
+    gripper_data = readGripperCtrl(piper)
+    end_pose_data = readEndPoseMsg(piper)
 
     robot_data = {
         "joint_data": joint_data,
@@ -41,7 +18,3 @@ def record_real_data_joint(piper):
     }
 
     return robot_data
-
-
-
-

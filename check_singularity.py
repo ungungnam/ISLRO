@@ -11,7 +11,6 @@ from constants import *
 from record_data_joint import *
 from robot_utils import *
 
-THRESHOLD = 1
 
 
 def load_h5_data(file_name):

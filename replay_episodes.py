@@ -6,35 +6,11 @@ import h5py
 import numpy as np
 
 from piper_sdk import *
+
+from robot_utils import *
 from constants import *
 
-
-def enable_fun(piper: C_PiperInterface):
-    enable_flag = False
-    elapsed_time_flag = False
-    timeout = 5
-    start_time = time.time()
-    while not (enable_flag):
-        elapsed_time = time.time() - start_time
-        enable_flag = piper.GetArmLowSpdInfoMsgs().motor_1.foc_status.driver_enable_status and \
-                      piper.GetArmLowSpdInfoMsgs().motor_2.foc_status.driver_enable_status and \
-                      piper.GetArmLowSpdInfoMsgs().motor_3.foc_status.driver_enable_status and \
-                      piper.GetArmLowSpdInfoMsgs().motor_4.foc_status.driver_enable_status and \
-                      piper.GetArmLowSpdInfoMsgs().motor_5.foc_status.driver_enable_status and \
-                      piper.GetArmLowSpdInfoMsgs().motor_6.foc_status.driver_enable_status
-        piper.EnableArm(7)
-        piper.GripperCtrl(0, 1000, 0x01, 0)
-        if elapsed_time > timeout:
-            print("Timeout....")
-            elapsed_time_flag = True
-            enable_flag = True
-            break
-        time.sleep(1)
-        pass
-    if (elapsed_time_flag):
-        print("The program automatically enables timeout, exit the program")
-        exit(0)
-
+fk_calc = FK_CALC
 
 def load_h5_data(file_name):
     try:
@@ -57,7 +33,7 @@ def main(args):
     piper = C_PiperInterface("can0")
     piper.ConnectPort()
     piper.EnableArm(7)
-    enable_fun(piper=piper)
+    setZeroConfiguration(piper)
 
     # recording actuation time
     record_act_time = []
@@ -65,24 +41,17 @@ def main(args):
 
     # Load the h5 file using episode_name
     joint_data, gripper_data, end_pose_data = load_h5_data(file_name=f'dataset/episode_{episode_name}.h5')
+    prev_end_pose = end_pose_data[0]
+    prev_gripper = gripper_data[0]
 
     if control_mode == 'JointCtrl':
         for i in range(len(joint_data)):
             t_before_act = time.time()
 
-            joint_1 = joint_data[i][0]
-            joint_2 = joint_data[i][1]
-            joint_3 = joint_data[i][2]
-            joint_4 = joint_data[i][3]
-            joint_5 = joint_data[i][4]
-            joint_6 = joint_data[i][5]
+            joint = joint_data[i]
+            gripper = gripper_data[i]
 
-            gripper_angle = gripper_data[i][0]
-            gripper_effort = gripper_data[i][1]
-
-            piper.MotionCtrl_2(0x01, 0x01, 20, 0x00)
-            piper.JointCtrl(joint_1, joint_2, joint_3, joint_4, joint_5, joint_6)
-            piper.GripperCtrl(abs(gripper_angle), gripper_effort, 0x01, 0)
+            ctrlJoint(piper, joint, gripper)
 
             time.sleep(1/fps)
             t_after_act = time.time()
@@ -94,21 +63,26 @@ def main(args):
         for i in range(len(end_pose_data)):
             t_before_act = time.time()
 
-            x = end_pose_data[i][0]
-            y = end_pose_data[i][1]
-            z = end_pose_data[i][2]
-            rx = end_pose_data[i][3]
-            ry = end_pose_data[i][4]
-            rz = end_pose_data[i][5]
+            end_pose = end_pose_data[i]
+            gripper = gripper_data[i]
 
-            gripper_angle = gripper_data[i][0]
-            gripper_effort = gripper_data[i][1]
+            ctrlEndPose(piper, end_pose, gripper)
 
-            piper.MotionCtrl_2(0x01, 0x00, 20, 0x00)
-            piper.EndPoseCtrl(x, y, z, rx, ry, rz)
-            piper.GripperCtrl(abs(gripper_angle), gripper_effort, 0x01, 0)
+            if not isMoved(piper, prev_data={
+                'end_pose': prev_end_pose,
+                'gripper': prev_gripper
+            }):
+                joint = deg2rad(0.001 * joint_data[i])
+                detoured_end_pose = np.array(fk_calc.CalFK(joint)[-1])
+                detoured_end_pose = (1000 * detoured_end_pose).astype(int)
+                ctrlEndPose(piper, detoured_end_pose, gripper)
+
+                # ctrlJoint(piper, joint_data[i], gripper)
 
             time.sleep(1 / fps)
+
+            prev_end_pose = readEndPoseMsg(piper)
+            prev_gripper = readGripperMsg(piper)
 
             t_after_act = time.time()
             record_act_time.append(t_after_act - t_before_act)
@@ -117,6 +91,10 @@ def main(args):
 
     else:
         print("Invalid control mode\n Try either 'JointCtrl' or 'EndPoseCtrl'")
+        exit()
+
+    setZeroConfiguration(piper)
+
 
 
 if __name__ == "__main__":

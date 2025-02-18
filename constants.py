@@ -1,5 +1,10 @@
-FPS = 50
+from piper_sdk.kinematics import C_PiperForwardKinematics
+import numpy as np
+
+FPS = 20
 SERVER_IP = "147.47.239.153"
+FK_CALC = C_PiperForwardKinematics()
+MOVEMENT_THRESHOLD = 50
 
 class Config:
     def __init__(self):
@@ -25,3 +30,11 @@ class Config:
 
 def config():
     return Config().to_dict()
+
+
+def deg2rad(deg):
+    return deg * np.pi / 180
+
+
+def rad2deg(rad):
+    return rad * 180 / np.pi
