@@ -34,6 +34,7 @@ def readGripperMsg(piper):
     gripper_data = np.array([grippers.grippers_angle, grippers.grippers_effort])
     return gripper_data
 
+
 def ctrlEndPose(piper, end_pose_data, gripper_data):
     gripper_angle, gripper_effort = gripper_data[:]
 
