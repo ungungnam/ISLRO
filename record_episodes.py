@@ -3,6 +3,8 @@ import os
 import time
 
 import h5py
+import json
+import cv2
 from tqdm import tqdm
 
 import pyrealsense2 as rs
@@ -32,6 +34,14 @@ def capture_episode(task_config, episode_name):
     episode_len = task_config["EPISODE_LEN"]
     fps = task_config["FPS"]
 
+    # create folder where data is saved
+    try:
+        if not os.path.exists(f"{dataset_dir}/{episode_name}"):
+            os.makedirs(f"{dataset_dir}/{episode_name}")
+    except OSError:
+        print(f"Error: Creating directory. {episode_name}")
+
+
     dt = 1 / fps
     max_timestep = episode_len * fps
     dataset = []
@@ -44,9 +54,13 @@ def capture_episode(task_config, episode_name):
         t0 = time.time()
         robot = record_real_data_joint(piper)
         t_robot = time.time()
-        image = record_real_data_img(pipeline)
-        t1 = time.time()
 
+        #image name "episode_name_color_t.jpeg"
+        color_image, depth_image = record_real_data_img(pipeline)
+        cv2.imwrite(f"{dataset_dir}/{episode_name}/color_img_{t}.jpeg", color_image)
+        cv2.imwrite(f"{dataset_dir}/{episode_name}/depth_img_{t}.jpeg", depth_image)
+
+        t1 = time.time()
         record_robot_time.append(t_robot-t0)
         record_image_time.append(t1-t_robot)
 
@@ -54,7 +68,6 @@ def capture_episode(task_config, episode_name):
             "index": t,
             "timestamp": t1-t_start,
             "robot": robot,
-            "image": image,
         }
         dataset.append(data)
 
@@ -63,34 +76,38 @@ def capture_episode(task_config, episode_name):
     print(f"average time on recording robot data : {np.mean(record_robot_time)}")
     print(f"average time on recording image data : {np.mean(record_image_time)}")
 
-    with h5py.File(dataset_dir + f"/episode_{episode_name}.h5", "w") as f:
-        robot_group = f.create_group("robot")
-        image_group = f.create_group("image")
 
-        index, timestamp_data = [], []
-        joint_data, end_pose_data, gripper_data, image_data = [], [], [], []
-        while dataset:
-            data = dataset.pop(0)
+    with open (f"{dataset_dir}/{episode_name}/{episode_name}.json", "w") as f:
+        json.dump(dataset, f, indent=4)
 
-            idx = data["index"]
-            timestamp = data["timestamp"]
-
-            joint = data["robot"]["joint_data"]
-            end_pose = data["robot"]["end_pose_data"]
-            gripper = data["robot"]["gripper_data"]
-            image = data["image"]
-
-            timestamp_data.append(timestamp)
-            joint_data.append(joint)
-            end_pose_data.append(end_pose)
-            gripper_data.append(gripper)
-            image_data.append(image)
-
-        f.create_dataset(name=f"timestamp", data=timestamp_data)
-        robot_group.create_dataset(name=f'joint_data', data=joint_data)
-        robot_group.create_dataset(name=f'end_pose_data', data=end_pose_data)
-        robot_group.create_dataset(name=f'gripper_data', data=gripper_data)
-        image_group.create_dataset(name=f'image_data', data=image_data)
+    # with h5py.File(dataset_dir + f"/episode_{episode_name}.h5", "w") as f:
+    #     robot_group = f.create_group("robot")
+    #     image_group = f.create_group("image")
+    #
+    #     index, timestamp_data = [], []
+    #     joint_data, end_pose_data, gripper_data, image_data = [], [], [], []
+    #     while dataset:
+    #         data = dataset.pop(0)
+    #
+    #         idx = data["index"]
+    #         timestamp = data["timestamp"]
+    #
+    #         joint = data["robot"]["joint_data"]
+    #         end_pose = data["robot"]["end_pose_data"]
+    #         gripper = data["robot"]["gripper_data"]
+    #         image = data["image"]
+    #
+    #         timestamp_data.append(timestamp)
+    #         joint_data.append(joint)
+    #         end_pose_data.append(end_pose)
+    #         gripper_data.append(gripper)
+    #         image_data.append(image)
+    #
+    #     f.create_dataset(name=f"timestamp", data=timestamp_data)
+    #     robot_group.create_dataset(name=f'joint_data', data=joint_data)
+    #     robot_group.create_dataset(name=f'end_pose_data', data=end_pose_data)
+    #     robot_group.create_dataset(name=f'gripper_data', data=gripper_data)
+    #     image_group.create_dataset(name=f'image_data', data=image_data)
 
     return True
 
