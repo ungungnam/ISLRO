@@ -18,12 +18,12 @@ def capture_episode(task_config, episode_name):
     piper.ConnectPort()
 
     pipeline = rs.pipeline()
-    # rs_config = rs.config()
+    rs_config = rs.config()
 
-    # rs_config.enable_stream(rs.stream.depth,)
-    # rs_config.enable_stream(rs.stream.color,)
+    rs_config.enable_stream(rs.stream.depth,)
+    rs_config.enable_stream(rs.stream.color,)
 
-    # pipeline.start(rs_config)
+    pipeline.start(rs_config)
 
     dataset_dir = task_config["DATASET_DIR"]
     if not os.path.isdir(dataset_dir):

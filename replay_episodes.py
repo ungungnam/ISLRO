@@ -24,6 +24,7 @@ class EpisodeReplayer:
         self.index = 0
 
         self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'dataset/episode_{self.episode_name}.h5')
+        # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'data_re.h5')
 
         self.prev_end_pose = self.end_pose_data[0].copy()
         self.prev_gripper = self.gripper_data[0].copy()
@@ -100,7 +101,7 @@ class EpisodeReplayer:
             ctrlJoint(self.piper, self.joint_data[self.index], self.gripper)
 
     def get_detoured_end_pose(self, joint):
-        return (1000 * np.array(self.fk_calc.CalFK(joint[-1]))).astype(int)
+        return 1000 * np.array(self.fk_calc.CalFK(joint)[-1]).astype(int)
 
 
 if __name__ == "__main__":
@@ -110,4 +111,9 @@ if __name__ == "__main__":
     args = vars(parser.parse_args())
 
     episode_replayer = EpisodeReplayer(args)
-    episode_replayer.replay()
+
+    # episode_replayer = EpisodeReplayer({
+    #     'episode_name': None,
+    #     'control_mode': 'EndPoseCtrl',
+    # })
+    # episode_replayer.replay()

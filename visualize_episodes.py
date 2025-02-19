@@ -6,7 +6,7 @@ import cv2
 from matplotlib import pyplot as plt
 import numpy as np
 
-FPS = 30
+FPS = 200
 JOINT_LEGEND = ("joint 1", "joint 2", "joint 3", "joint 4", "joint 5", "joint 6")
 END_POSE_LEGEND = ("X", "Y", "Z", "RX", "RY", "RZ")
 
@@ -139,11 +139,11 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--episode_name', type=str, required=True)
-    main(vars((parser.parse_args())))
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--episode_name', type=str, required=True)
+    # main(vars((parser.parse_args())))
 
-    # args = {
-    #     'episode_name': 'tutorial',
-    # }
-    # main(args)
+    args = {
+        'episode_name': 'arrange_cups_50',
+    }
+    main(args)
