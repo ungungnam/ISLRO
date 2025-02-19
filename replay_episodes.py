@@ -130,15 +130,15 @@ class EpisodeReplayer:
 
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--episode_name', type=str, required=True)
-    # parser.add_argument('--control_mode', type=str, required=True)
-    # args = vars(parser.parse_args())
-    #
-    # episode_replayer = EpisodeReplayer(args)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--episode_name', type=str, required=True)
+    parser.add_argument('--control_mode', type=str, required=True)
+    args = vars(parser.parse_args())
 
-    episode_replayer = EpisodeReplayer({
-        'episode_name': None,
-        'control_mode': 'EndPoseCtrl',
-    })
+    episode_replayer = EpisodeReplayer(args)
+
+    # episode_replayer = EpisodeReplayer({
+    #     'episode_name': None,
+    #     'control_mode': 'EndPoseCtrl',
+    # })
     episode_replayer.replay()

@@ -10,7 +10,8 @@ def experiment(episode_name, control_mode, alt_control_mode, threshold):
     episode_replayer.alt_control_mode = alt_control_mode
 
     end_pose_data = episode_replayer.end_pose_data.copy()
-    episode_replayer.end_pose_data = process_data(end_pose_data, threshold)
+    gripper_data = episode_replayer.gripper_data.copy()
+    episode_replayer.end_pose_data, episode_replayer.gripper_data = process_data(end_pose_data, gripper_data, threshold)
 
     print(f'experiment {episode_name} {control_mode} {alt_control_mode} {threshold}')
     episode_replayer.replay()
@@ -19,27 +20,39 @@ def experiment(episode_name, control_mode, alt_control_mode, threshold):
     return recorded_end_pose
 
 
-def process_data(data, threshold):
-    x,y,z = data[:,0], data[:,1], data[:,2]
-    rx, ry, rz = data[:,3], data[:,4], data[:,5]
+def get_indices(coor, threshold):
+    x = coor[0]
+    y = coor[1]
+    z = coor[2]
 
     dx = np.diff(x)
     dy = np.diff(y)
     dz = np.diff(z)
 
-    dist = np.sqrt(np.power(dx,2) + np.power(dy,2) + np.power(dz,2))
-    indices = np.where(dist < threshold)[0]
+    dist = np.sqrt(np.power(dx, 2) + np.power(dy, 2) + np.power(dz, 2))
+    indices = np.where(dist > threshold)[0]
 
-    x_re = np.hstack([x[0], x[indices]])
-    y_re = np.hstack([y[0], y[indices]])
-    z_re = np.hstack([z[0], z[indices]])
+    return indices
 
-    rx_re = np.stack([rx[0], rx[indices]])
-    ry_re = np.stack([ry[0], ry[indices]])
-    rz_re = np.stack([rz[0], rz[indices]])
 
-    processed_data = np.column_stack([x_re, y_re, z_re, rx_re, ry_re, rz_re])
-    return processed_data
+def slice_and_stack(data, indices):
+    data_re = []
+
+    for i in range(data.shape[1]):
+        datum = data[:, i]
+        datum_re = np.hstack([datum[0], datum[indices]])
+        data_re.append(datum_re)
+
+    return np.column_stack(data_re)
+
+def process_data(end_pose_data, gripper_data, threshold):
+    x,y,z = end_pose_data[:, 0], end_pose_data[:, 1], end_pose_data[:, 2]
+    indices = get_indices([x,y,z], threshold)
+
+    processed_end_pose_data = slice_and_stack(end_pose_data, indices)
+    processed_gripper_data = slice_and_stack(gripper_data, indices)
+
+    return processed_end_pose_data, processed_gripper_data
 
 
 def main():

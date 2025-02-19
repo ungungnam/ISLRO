@@ -42,11 +42,11 @@ def main():
     experiment_name = 'no_config_2'
     instance_name_list = ['ref_data','JointCtrl', 'EndPoseCtrl', 'EndPoseCtrl_DetourEndPoseCtrl', 'EndPoseCtrl_JointCtrl']
 
-    # data1 = experiment(episode_name,'JointCtrl', None, None)
-    # data2 = experiment(episode_name,'EndPoseCtrl', None, None)
-    # data3 = experiment(episode_name,'EndPoseCtrl', 'DetourEndPoseCtrl', 'equal')
-    # data4 = experiment(episode_name,'EndPoseCtrl', 'JointCtrl', 'equal')
-    # data5 = experiment(episode_name, 'ForwardKinematicsCtrl', False, False)
+    data1 = experiment(episode_name,'JointCtrl', None, None)
+    data2 = experiment(episode_name,'EndPoseCtrl', None, None)
+    data3 = experiment(episode_name,'EndPoseCtrl', 'DetourEndPoseCtrl', 'equal')
+    data4 = experiment(episode_name,'EndPoseCtrl', 'JointCtrl', 'equal')
+    data5 = experiment(episode_name, 'ForwardKinematicsCtrl', False, False)
     #
     # assert len(data1) == len(data2)
     # assert len(data1) == len(data3)
