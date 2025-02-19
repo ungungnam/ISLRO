@@ -2,7 +2,7 @@ import numpy as np
 from replay_episodes import EpisodeReplayer
 
 
-def experiment(episode_name, control_mode, alt_control_mode, threshold):
+def _experiment(episode_name, control_mode, alt_control_mode, threshold):
     episode_replayer = EpisodeReplayer({
         'episode_name': episode_name,
         'control_mode': control_mode,
@@ -45,6 +45,7 @@ def slice_and_stack(data, indices):
 
     return np.column_stack(data_re)
 
+
 def process_data(end_pose_data, gripper_data, threshold):
     x,y,z = end_pose_data[:, 0], end_pose_data[:, 1], end_pose_data[:, 2]
     indices = get_indices([x,y,z], threshold)
@@ -59,11 +60,11 @@ def main():
     episode_name = 'arrange_cups_2_30'
     control_mode = 'EndPoseCtrl'
 
-    data1=experiment(episode_name, control_mode, None, 50)
-    data2=experiment(episode_name, control_mode, None, 100)
-    data3=experiment(episode_name, control_mode, None, 500)
-    data4=experiment(episode_name, control_mode, None, 1000)
-    data5=experiment(episode_name, control_mode, None, 5000)
+    data1=_experiment(episode_name, control_mode, None, 50)
+    data2=_experiment(episode_name, control_mode, None, 100)
+    data3=_experiment(episode_name, control_mode, None, 500)
+    data4=_experiment(episode_name, control_mode, None, 1000)
+    data5=_experiment(episode_name, control_mode, None, 5000)
 
 
 if __name__ == "__main__":
