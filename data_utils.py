@@ -20,7 +20,7 @@ def save_exp_csv(data, data_name, experiment_name):
     try:
         os.makedirs(f'experiments/{experiment_name}')
     except OSError:
-        print(f'directory {experiment_name} already exists')
+        pass
 
     with open(f'experiments/{experiment_name}/{data_name}.csv', 'w', newline='') as f:
         writer = csv.writer(f)

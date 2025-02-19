@@ -1,7 +1,7 @@
 from piper_sdk.kinematics import C_PiperForwardKinematics
 import numpy as np
 
-FPS = 50
+FPS = 30
 SERVER_IP = "147.47.239.153"
 FK_CALC = C_PiperForwardKinematics()
 MOVEMENT_THRESHOLD = 50

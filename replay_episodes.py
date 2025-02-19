@@ -42,6 +42,8 @@ class EpisodeReplayer:
             self.replay_joint()
         elif self.control_mode == 'EndPoseCtrl':
             self.replay_end_pose()
+        elif self.control_mode == 'ForwardKinematicsCtrl':
+            self.replay_fk()
         else:
             print("Invalid control mode\n Try either 'JointCtrl' or 'EndPoseCtrl'")
             exit()
@@ -104,17 +106,39 @@ class EpisodeReplayer:
     def get_detoured_end_pose(self, joint):
         return 1000 * np.array(self.fk_calc.CalFK(joint)[-1]).astype(int)
 
+    def replay_fk(self):
+        end_pose_fk = []
+        for i in range(len(self.joint_data)):
+            joint = deg2rad(0.001 * self.joint_data[i])
+            fk = self.get_detoured_end_pose(joint)
+            end_pose_fk.append(fk)
+
+        for i in range(len(end_pose_fk)):
+            self.index = i
+            t_before_act = time.time()
+
+            self.end_pose = end_pose_fk[self.index]
+            self.gripper = self.gripper_data[self.index]
+
+            ctrlEndPose(self.piper, self.end_pose, self.gripper)
+
+            time.sleep(1 / self.fps)
+            t_after_act = time.time()
+
+            self.record_end_pose.append(readEndPoseMsg(self.piper))
+            self.record_act_time.append(t_after_act - t_before_act)
+
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--episode_name', type=str, required=True)
-    parser.add_argument('--control_mode', type=str, required=True)
-    args = vars(parser.parse_args())
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--episode_name', type=str, required=True)
+    # parser.add_argument('--control_mode', type=str, required=True)
+    # args = vars(parser.parse_args())
+    #
+    # episode_replayer = EpisodeReplayer(args)
 
-    episode_replayer = EpisodeReplayer(args)
-
-    # episode_replayer = EpisodeReplayer({
-    #     'episode_name': None,
-    #     'control_mode': 'EndPoseCtrl',
-    # })
-    # episode_replayer.replay()
+    episode_replayer = EpisodeReplayer({
+        'episode_name': None,
+        'control_mode': 'EndPoseCtrl',
+    })
+    episode_replayer.replay()

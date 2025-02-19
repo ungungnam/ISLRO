@@ -1,9 +1,9 @@
 import argparse
 import os
-import time
-
-import h5py
+import json
+import pickle
 from tqdm import tqdm
+import h5py
 
 import pyrealsense2 as rs
 
@@ -32,9 +32,19 @@ def capture_episode(task_config, episode_name):
     episode_len = task_config["EPISODE_LEN"]
     fps = task_config["FPS"]
 
+    # create folder where data is saved
+    try:
+        if not os.path.exists(f"{dataset_dir}/{episode_name}"):
+            os.makedirs(f"{dataset_dir}/{episode_name}")
+    except OSError:
+        print(f"Error: Creating directory. {episode_name}")
+
+
     dt = 1 / fps
     max_timestep = episode_len * fps
     dataset = []
+    robot_dataset = []
+    image_dataset = []
 
     record_robot_time = []
     record_image_time = []
@@ -44,19 +54,22 @@ def capture_episode(task_config, episode_name):
         t0 = time.time()
         robot = record_real_data_joint(piper)
         t_robot = time.time()
+        # image_data = record_real_data_img(pipeline)
         image = record_real_data_img(pipeline)
         t1 = time.time()
 
         record_robot_time.append(t_robot-t0)
         record_image_time.append(t1-t_robot)
 
-        data = {
+        robot_data = {
             "index": t,
             "timestamp": t1-t_start,
             "robot": robot,
             "image": image,
         }
-        dataset.append(data)
+        dataset.append(robot_data)
+        # robot_dataset.append(robot_data)
+        # image_dataset.append(image_data)
 
         time.sleep(max(0, dt - (time.time() - t0)))
 
@@ -91,6 +104,18 @@ def capture_episode(task_config, episode_name):
         robot_group.create_dataset(name=f'end_pose_data', data=end_pose_data)
         robot_group.create_dataset(name=f'gripper_data', data=gripper_data)
         image_group.create_dataset(name=f'image_data', data=image_data)
+
+    # with open (f"{dataset_dir}/{episode_name}/{episode_name}.pickle", "wb") as f:
+    #     pickle.dump(robot_dataset, f, pickle.HIGHEST_PROTOCOL)
+    #
+    # for index, image_data in enumerate(image_dataset):
+    #     color_image, depth_image = image_data
+    #
+    #     color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB).astype(np.uint8)
+    #     depth_image = cv2.normalize(depth_image, None, 0, 255, cv2.NORM_MINMAX).astype(np.uint8)
+    #
+    #     cv2.imwrite(f"{dataset_dir}/{episode_name}/color_img_{index}.jpeg", color_image)
+    #     cv2.imwrite(f"{dataset_dir}/{episode_name}/depth_img_{index}.jpeg", depth_image)
 
     return True
 

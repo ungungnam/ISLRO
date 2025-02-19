@@ -1,7 +1,7 @@
 import time
-import csv
-import h5py
-import os
+
+import numpy as np
+
 from constants import *
 
 def setZeroConfiguration(piper):
@@ -22,6 +22,12 @@ def readGripperCtrl(piper):
     grippers = piper.GetArmGripperCtrl().gripper_ctrl
     gripper_data = np.array([grippers.grippers_angle, grippers.grippers_effort])
     return gripper_data
+
+
+def readJointMsg(piper):
+    joints = piper.GetArmJointMsgs().joint_state
+    joint_data = np.array([joints.joint_1, joints.joint_2, joints.joint_3, joints.joint_4, joints.joint_5, joints.joint_6])
+    return joint_data
 
 
 def readEndPoseMsg(piper):
@@ -47,8 +53,9 @@ def ctrlEndPose(piper, end_pose_data, gripper_data):
 def ctrlJoint(piper, joint_data, gripper_data):
     gripper_angle, gripper_effort = gripper_data[:]
 
+    joint_data_int = joint_data.astype(np.int32)
     piper.MotionCtrl_2(0x01, 0x01, 20, 0x00)
-    piper.JointCtrl(*joint_data)
+    piper.JointCtrl(*joint_data_int)
     piper.GripperCtrl(abs(gripper_angle), gripper_effort, 0x01, 0)
 
 
