@@ -19,6 +19,8 @@ class EpisodeReplayer:
         self.piper.EnableArm(7)
         setZeroConfiguration(self.piper)
 
+        self.valid_ctrl_modes = ['JointCtrl','EndPoseCtrl','ForwardKinematicsCtrl', 'CurveCtrl']
+
         self.record_end_pose = []
         self.record_act_time = []
         self.fps = FPS
@@ -32,20 +34,24 @@ class EpisodeReplayer:
 
         self.end_pose = self.end_pose_data[0].copy()
         self.gripper = self.gripper_data[0].copy()
+        self.curve_points = self.end_pose_data[0:3].copy()
 
         self.alt_control_mode = None
         self.detoured_end_pose = self.end_pose_data[0].copy()
         self.movement_detection = None
 
     def replay(self):
-        if self.control_mode == 'JointCtrl':
-            self.replay_joint()
-        elif self.control_mode == 'EndPoseCtrl':
-            self.replay_end_pose()
-        elif self.control_mode == 'ForwardKinematicsCtrl':
-            self.replay_fk()
+        if self.control_mode in self.valid_ctrl_modes:
+            if self.control_mode == 'JointCtrl':
+                self.replay_joint()
+            elif self.control_mode == 'EndPoseCtrl':
+                self.replay_end_pose()
+            elif self.control_mode == 'ForwardKinematicsCtrl':
+                self.replay_fk()
+            elif  self.control_mode == 'CurveCtrl':
+                self.replay_curve()
         else:
-            print("Invalid control mode\n Try either 'JointCtrl' or 'EndPoseCtrl'")
+            print(f"Invalid control mode\n Try {self.valid_ctrl_modes}")
             exit()
 
         print(f"average time on robot actuation : {np.mean(self.record_act_time)}")
@@ -128,6 +134,23 @@ class EpisodeReplayer:
             self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_act_time.append(t_after_act - t_before_act)
 
+    def replay_curve(self):
+        for i in range(len(self.end_pose_data)-2):
+            self.index = i
+            t_before_act = time.time()
+
+            self.curve_points = self.end_pose_data[self.index:self.index+3]
+            self.gripper = self.gripper_data[self.index]
+
+            ctrlCurve(self.piper, self.curve_points, self.gripper)
+
+            time.sleep(1 / self.fps)
+            t_after_act = time.time()
+
+            self.record_end_pose.append(readEndPoseMsg(self.piper))
+            self.record_act_time.append(t_after_act - t_before_act)
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -141,4 +164,5 @@ if __name__ == "__main__":
     #     'episode_name': None,
     #     'control_mode': 'EndPoseCtrl',
     # })
+
     episode_replayer.replay()

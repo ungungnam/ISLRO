@@ -53,6 +53,7 @@ def process_data(end_pose_data, gripper_data, threshold):
     processed_end_pose_data = slice_and_stack(end_pose_data, indices)
     processed_gripper_data = slice_and_stack(gripper_data, indices)
 
+    print(processed_end_pose_data.shape)
     return processed_end_pose_data, processed_gripper_data
 
 

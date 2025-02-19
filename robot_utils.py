@@ -59,6 +59,24 @@ def ctrlJoint(piper, joint_data, gripper_data):
     piper.GripperCtrl(abs(gripper_angle), gripper_effort, 0x01, 0)
 
 
+def ctrlCurve(piper, curve_points, gripper_data):
+    gripper_angle, gripper_effort = gripper_data[:]
+    p0, p1, p2 = curve_points
+
+    piper.MotionCtrl_2(0x01, 0x03, 20, 0x00)
+
+    piper.EndPoseCtrl(*p0)
+    piper.MoveCAxisUpdateCtrl(0x01)
+    time.sleep(0.00001)
+    piper.EndPoseCtrl(*p1)
+    piper.MoveCAxisUpdateCtrl(0x02)
+    time.sleep(0.00001)
+    piper.EndPoseCtrl(*p2)
+    piper.MoveCAxisUpdateCtrl(0x03)
+
+    piper.GripperCtrl(abs(gripper_angle), gripper_effort, 0x01, 0)
+
+
 def isMoved(piper, prev_data=None):
     if prev_data is None:
         prev_data = {'end_pose_data': [0] * 6, 'gripper_data': [0] * 6}
