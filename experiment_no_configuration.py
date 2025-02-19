@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import csv
-import os
 
 from replay_episodes import EpisodeReplayer
 from robot_utils import *
+from data_utils import *
 
 def experiment(episode_name, control_mode, alt_control_mode, movement_detection):
     episode_replayer = EpisodeReplayer({
@@ -44,26 +42,26 @@ def main():
     experiment_name = 'no_config'
     instance_name_list = ['ref_data','JointCtrl', 'EndPoseCtrl', 'EndPoseCtrl_DetourEndPoseCtrl', 'EndPoseCtrl_JointCtrl']
 
-    # data1 = experiment('arrange_cups_50','JointCtrl', None, None)
-    # data2 = experiment('arrange_cups_50','EndPoseCtrl', None, None)
-    # data3 = experiment('arrange_cups_50','EndPoseCtrl', 'DetourEndPoseCtrl', 'equal')
-    # data4 = experiment('arrange_cups_50','EndPoseCtrl', 'JointCtrl', 'equal')
-    #
-    # assert len(data1) == len(data2)
-    # assert len(data1) == len(data3)
-    # assert len(data1) == len(data4)
-    #
-    # save_exp_csv(data1, 'JointCtrl', experiment_name)
-    # save_exp_csv(data2, 'EndPoseCtrl', experiment_name)
-    # save_exp_csv(data3, 'EndPoseCtrl_DetourEndPoseCtrl', experiment_name)
-    # save_exp_csv(data4, 'EndPoseCtrl_JointCtrl', experiment_name)
+    data1 = experiment(episode_name,'JointCtrl', None, None)
+    data2 = experiment(episode_name,'EndPoseCtrl', None, None)
+    data3 = experiment(episode_name,'EndPoseCtrl', 'DetourEndPoseCtrl', 'equal')
+    data4 = experiment(episode_name,'EndPoseCtrl', 'JointCtrl', 'equal')
+
+    assert len(data1) == len(data2)
+    assert len(data1) == len(data3)
+    assert len(data1) == len(data4)
+
+    save_exp_csv(data1, 'JointCtrl', experiment_name)
+    save_exp_csv(data2, 'EndPoseCtrl', experiment_name)
+    save_exp_csv(data3, 'EndPoseCtrl_DetourEndPoseCtrl', experiment_name)
+    save_exp_csv(data4, 'EndPoseCtrl_JointCtrl', experiment_name)
 
     _, _, end_pose_data = load_h5_data(file_name=f'dataset/episode_{episode_name}.h5')
 
-    data1 = load_exp_csv(experiment_name, 'JointCtrl')
-    data2 = load_exp_csv(experiment_name, 'EndPoseCtrl')
-    data3 = load_exp_csv(experiment_name, 'EndPoseCtrl_DetourEndPoseCtrl')
-    data4 = load_exp_csv(experiment_name, 'EndPoseCtrl_JointCtrl')
+    # data1 = load_exp_csv(experiment_name, 'JointCtrl')
+    # data2 = load_exp_csv(experiment_name, 'EndPoseCtrl')
+    # data3 = load_exp_csv(experiment_name, 'EndPoseCtrl_DetourEndPoseCtrl')
+    # data4 = load_exp_csv(experiment_name, 'EndPoseCtrl_JointCtrl')
 
     fig, ax = plt.subplots(3,2, figsize=[25, 15])
 
