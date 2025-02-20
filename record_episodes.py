@@ -10,10 +10,9 @@ import time
 import pyrealsense2 as rs
 
 from piper_sdk import *
-from record_data_joint import *
-from record_data_img import *
 from constants import *
 from data_utils import *
+from robot_utils import *
 
 
 class EpisodeRecorder:
@@ -50,6 +49,7 @@ class EpisodeRecorder:
         self.image_data = None
         self.robot_time_data = None
 
+        self.frames = None
         self.depth_image, self.color_image = None, None
 
         self.robot_dataset = []
@@ -77,6 +77,11 @@ class EpisodeRecorder:
             if not self.is_healthy:
                 raise Exception("Health check failed")
 
+        print(f"average time on recording robot data : {np.mean(self.record_robot_time)}")
+        print(f"average time on recording image data : {np.mean(self.record_image_time)}")
+
+        save_episode(self.robot_dataset, self.image_dataset, self.episode_name)
+
     def capture_timestep(self):
         self.t_start = time.time()
 
@@ -93,17 +98,12 @@ class EpisodeRecorder:
         }
 
         self.robot_dataset.append(self.robot_time_data)
-        self.image_data.append(self.image_data)
+        self.image_dataset.append(self.image_data)
 
         self.record_robot_time.append(self.t_robot - self.t_start)
         self.record_image_time.append(self.t_image - self.t_start)
 
         time.sleep(max(0, self.dt - (time.time() - self.t_start)))
-
-        print(f"average time on recording robot data : {np.mean(self.record_robot_time)}")
-        print(f"average time on recording image data : {np.mean(self.record_image_time)}")
-
-        save_episode(self.robot_dataset, self.image_dataset, self.episode_name)
         return True
 
     def record_robot_data(self):
@@ -114,8 +114,9 @@ class EpisodeRecorder:
         }
 
     def record_image_data(self):
-        self.depth_image = np.array(self.pipeline.wait_for_frames().get_depth_frame().get_data()).astype(np.uint8)
-        self.color_image = np.array(self.pipeline.wait_for_frames().get_color_image().get_data()).astype(np.uint8)
+        self.frames = self.pipeline.wait_for_frames()
+        self.depth_image = np.array(self.frames.get_depth_frame().get_data()).astype(np.uint8)
+        self.color_image = np.array(self.frames.get_color_frame().get_data()).astype(np.uint8)
 
         self.color_image = cv2.resize(self.color_image, (self.depth_image.shape[1], self.depth_image.shape[0]))
         self.image_data = [self.color_image, self.depth_image]
@@ -126,6 +127,11 @@ if __name__ == '__main__':
     parser.add_argument('--episode_len', type=int, required=True)
     parser.add_argument('--episode_name', type=str, required=True)
     args = vars(parser.parse_args())
+
+    # args = {
+    #     'episode_len': 5,
+    #     'episode_name': 'image_jpeg_test',
+    # }
 
     episode_recorder = EpisodeRecorder(args)
     episode_recorder.record()

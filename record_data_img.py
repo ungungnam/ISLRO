@@ -13,6 +13,8 @@ def record_real_data_img(pipeline):
     color_image = np.asanyarray(color_frame.get_data())
 
     color_image = cv2.resize(color_image, (depth_image.shape[1], depth_image.shape[0]))
+    depth_image = depth_image.astype(np.uint8)
+
     # depth_image = np.expand_dims(depth_image, axis=2)
     # image_data = np.concatenate((color_image, depth_image), axis=2)
 
