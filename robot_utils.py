@@ -8,6 +8,7 @@ def setZeroConfiguration(piper):
     piper.MotionCtrl_2(0x01, 0x01, 20, 0x00)
     piper.JointCtrl(0, 0, 0, 0, 0, 0)
     piper.GripperCtrl(0,0, 0x01, 0)
+    piper.MotionCtrl_2(0x01, 0x01, 20, 0x00)
     time.sleep(5)
     return True
 
@@ -63,7 +64,7 @@ def ctrlCurve(piper, curve_points, gripper_data):
     gripper_angle, gripper_effort = gripper_data[:]
     p0, p1, p2 = curve_points
 
-    piper.MotionCtrl_2(0x01, 0x03, 20, 0x00)
+    piper.MotionCtrl_2(0x01, 0x03, 30, 0x00)
 
     piper.EndPoseCtrl(*p0)
     piper.MoveCAxisUpdateCtrl(0x01)
@@ -74,6 +75,7 @@ def ctrlCurve(piper, curve_points, gripper_data):
     piper.EndPoseCtrl(*p2)
     piper.MoveCAxisUpdateCtrl(0x03)
 
+    piper.MotionCtrl_2(0x01, 0x03, 30, 0x00)
     piper.GripperCtrl(abs(gripper_angle), gripper_effort, 0x01, 0)
 
 

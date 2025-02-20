@@ -151,7 +151,6 @@ class EpisodeReplayer:
             self.record_act_time.append(t_after_act - t_before_act)
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--episode_name', type=str, required=True)

@@ -1,6 +1,13 @@
 import h5py
 import os
 import csv
+import pickle
+
+import cv2
+import numpy as np
+from constants import *
+
+dataset_dir = DATASET_DIR
 
 def load_h5_data(file_name):
     try:
@@ -14,6 +21,27 @@ def load_h5_data(file_name):
         return joint_data, gripper_data, end_pose_data
     except:
         raise Exception("The file " + file_name + " does not exist")
+
+
+def save_episode(robot_dataset, image_dataset, episode_name):
+    _save_episode_robot(robot_dataset, episode_name)
+    _save_episode_image(image_dataset, episode_name)
+
+
+def _save_episode_robot(robot_dataset, episode_name):
+    with open (f"{dataset_dir}/{episode_name}/{episode_name}.pickle", "wb") as f:
+        pickle.dump(robot_dataset, f, pickle.HIGHEST_PROTOCOL)
+
+
+def _save_episode_image(image_dataset, episode_name):
+    for index, image_data in enumerate(image_dataset):
+        color_image, depth_image = image_data
+
+        color_image = cv2.cvtColor(color_image, cv2.COLOR_BGR2RGB).astype(np.uint8)
+        depth_image = depth_image.astype(np.uint8)
+
+        cv2.imwrite(f"{dataset_dir}/{episode_name}/color_img_{index}.jpeg", color_image)
+        cv2.imwrite(f"{dataset_dir}/{episode_name}/depth_img_{index}.jpeg", depth_image)
 
 
 def save_exp_csv(data, data_name, experiment_name):
