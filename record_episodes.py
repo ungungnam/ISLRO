@@ -50,6 +50,8 @@ class EpisodeRecorder:
         self.image_data = None
         self.robot_time_data = None
 
+        self.depth_image, self.color_image = None, None
+
         self.robot_dataset = []
         self.image_dataset = []
 
