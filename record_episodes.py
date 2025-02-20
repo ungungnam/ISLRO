@@ -118,6 +118,7 @@ class EpisodeRecorder:
         self.color_image = cv2.resize(self.color_image, (self.depth_image.shape[1], self.depth_image.shape[0]))
         self.image_data = [self.color_image, self.depth_image]
 
+
 def capture_episode(task_config, episode_name):
     piper = C_PiperInterface("can0")
     piper.ConnectPort()
