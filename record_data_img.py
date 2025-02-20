@@ -20,5 +20,5 @@ def record_real_data_img(pipeline):
     # print(color_image.shape)
     # print(image_data.shape)
     # return image_data
-    print(depth_image)
+    # print(depth_image)
     return [color_image, depth_image]

@@ -26,7 +26,11 @@ class EpisodeReplayer:
         self.fps = FPS
         self.index = 0
 
-        self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'dataset/episode_{self.episode_name}.h5')
+        self.episode_data = load_episode(self.episode_name)
+        self.joint_data = self.episode_data['robot']['joint_data']
+        self.gripper_data = self.episode_data['robot']['gripper_data']
+        self.end_pose_data = self.episode_data['robot']['end_pose_data']
+        # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'dataset/episode_{self.episode_name}.h5')
         # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'data_re.h5')
 
         self.prev_end_pose = self.end_pose_data[0].copy()
@@ -152,16 +156,16 @@ class EpisodeReplayer:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--episode_name', type=str, required=True)
-    parser.add_argument('--control_mode', type=str, required=True)
-    args = vars(parser.parse_args())
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--episode_name', type=str, required=True)
+    # parser.add_argument('--control_mode', type=str, required=True)
+    # args = vars(parser.parse_args())
+    #
+    # episode_replayer = EpisodeReplayer(args)
 
-    episode_replayer = EpisodeReplayer(args)
-
-    # episode_replayer = EpisodeReplayer({
-    #     'episode_name': None,
-    #     'control_mode': 'EndPoseCtrl',
-    # })
+    episode_replayer = EpisodeReplayer({
+        'episode_name': 'image_jpeg_test',
+        'control_mode': 'EndPoseCtrl',
+    })
 
     episode_replayer.replay()

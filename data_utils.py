@@ -28,9 +28,37 @@ def save_episode(robot_dataset, image_dataset, episode_name):
     _save_episode_image(image_dataset, episode_name)
 
 
+def load_episode(episode_name):
+    try:
+        with open(f"{dataset_dir}/{episode_name}/{episode_name}.pickle", "rb") as f:
+            data = pickle.load(f)
+        return data
+    except:
+        raise Exception(f"The file {dataset_dir}/{episode_name}/{episode_name}.pickle does not exist")
+
+
 def _save_episode_robot(robot_dataset, episode_name):
+    index, timestamp = [],[]
+    joint, gripper, end_pose = [],[],[]
+    for data in robot_dataset:
+        index.append(data['index'])
+        timestamp.append(data['timestamp'])
+
+        joint.append(data['robot']['joint_data'])
+        gripper.append(data['robot']['gripper_data'])
+        end_pose.append(data['robot']['end_pose_data'])
+
+    robot_dataset_re = {
+        'index': index,
+        'timestamp': timestamp,
+        'robot':{
+            'joint':joint,
+            'gripper':gripper,
+            'end_pose':end_pose
+        }
+    }
     with open (f"{dataset_dir}/{episode_name}/{episode_name}.pickle", "wb") as f:
-        pickle.dump(robot_dataset, f, pickle.HIGHEST_PROTOCOL)
+        pickle.dump(robot_dataset_re, f, pickle.HIGHEST_PROTOCOL)
 
 
 def _save_episode_image(image_dataset, episode_name):
