@@ -11,6 +11,7 @@ class EpisodeReplayer:
         self.args = args
         self.episode_name = self.args['episode_name']
         self.control_mode = self.args['control_mode']
+        self.alt_control_mode = self.args['alt_control_mode'] if 'alt_control_mode' in self.args else None
 
         self.fk_calc = FK_CALC
 
@@ -40,7 +41,6 @@ class EpisodeReplayer:
         self.gripper = self.gripper_data[0].copy()
         self.curve_points = self.end_pose_data[0:3].copy()
 
-        self.alt_control_mode = None
         self.detoured_end_pose = self.end_pose_data[0].copy()
         self.movement_detection = None
 
@@ -140,6 +140,9 @@ class EpisodeReplayer:
 
     def replay_curve(self):
         for i in range(len(self.end_pose_data)-2):
+            if i%2:
+                continue
+
             self.index = i
             t_before_act = time.time()
 
@@ -156,16 +159,17 @@ class EpisodeReplayer:
 
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('--episode_name', type=str, required=True)
-    # parser.add_argument('--control_mode', type=str, required=True)
-    # args = vars(parser.parse_args())
-    #
-    # episode_replayer = EpisodeReplayer(args)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--episode_name', type=str, required=True)
+    parser.add_argument('--control_mode', type=str, required=True)
+    parser.add_argument('--alt_control_mode', type=str, required=False)
+    args = vars(parser.parse_args())
 
-    episode_replayer = EpisodeReplayer({
-        'episode_name': 'image_jpeg_test',
-        'control_mode': 'EndPoseCtrl',
-    })
+    episode_replayer = EpisodeReplayer(args)
+
+    # episode_replayer = EpisodeReplayer({
+    #     'episode_name': 'curve_ctrl_test',
+    #     'control_mode': 'CurveCtrl',
+    # })
 
     episode_replayer.replay()

@@ -52,9 +52,9 @@ def _save_episode_robot(robot_dataset, episode_name):
         'index': index,
         'timestamp': timestamp,
         'robot':{
-            'joint':joint,
-            'gripper':gripper,
-            'end_pose':end_pose
+            'joint_data':joint,
+            'gripper_data':gripper,
+            'end_pose_data':end_pose
         }
     }
     with open (f"{dataset_dir}/{episode_name}/{episode_name}.pickle", "wb") as f:
@@ -70,13 +70,13 @@ def _save_episode_image(image_dataset, episode_name):
         cv2.imwrite(f"{dataset_dir}/{episode_name}/depth_img_{index}.jpeg", depth_image)
     return True
 
-def save_exp_csv(data, data_name, experiment_name):
+def save_exp_csv(data, instance_name, experiment_name):
     try:
         os.makedirs(f'experiments/{experiment_name}')
     except OSError:
         pass
 
-    with open(f'experiments/{experiment_name}/{data_name}.csv', 'w', newline='') as f:
+    with open(f'experiments/{experiment_name}/{instance_name}.csv', 'w', newline='') as f:
         writer = csv.writer(f)
         writer.writerows(data)
 
