@@ -71,12 +71,15 @@ class EpisodeRecorder:
             exit()
 
     def record(self):
+        t0 = time.time()
         for i in tqdm(range(self.max_timestep)):
             self.index = i
             self.is_healthy = self.capture_timestep()
             if not self.is_healthy:
                 raise Exception("Health check failed")
+        t1 = time.time()
 
+        print(f"average Hz : {self.max_timestep / (t1-t0)}")
         print(f"average time on recording robot data : {np.mean(self.record_robot_time)}")
         print(f"average time on recording image data : {np.mean(self.record_image_time)}")
 

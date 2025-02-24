@@ -96,10 +96,11 @@ class EpisodeReplayer:
             self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_image_data()
 
-            time.sleep(max(0, 1 / self.fps - time.time() - t_before_act))
             t_after_act = time.time()
+            t_act = t_after_act - t_before_act
+            time.sleep(max(0, 1 / self.fps - t_act))
 
-            self.record_act_time.append(t_after_act - t_before_act)
+            self.record_act_time.append(t_act)
 
     def replay_end_pose(self, reversed=False):
         for i in range(len(self.end_pose_data)):
@@ -130,10 +131,11 @@ class EpisodeReplayer:
             self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_image_data()
 
-            time.sleep(max(0, 1 / self.fps - time.time() - t_before_act))
             t_after_act = time.time()
+            t_act = t_after_act - t_before_act
+            time.sleep(max(0, 1 / self.fps - t_act))
 
-            self.record_act_time.append(t_after_act - t_before_act)
+            self.record_act_time.append(t_act)
 
     def replay_alt_ctrl(self):
         if self.alt_control_mode == 'DetourEndPoseCtrl':
@@ -167,10 +169,11 @@ class EpisodeReplayer:
             self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_image_data()
 
-            time.sleep(max(0, 1 / self.fps - time.time() - t_before_act))
             t_after_act = time.time()
+            t_act = t_after_act - t_before_act
+            time.sleep(max(0, 1 / self.fps - t_act))
 
-            self.record_act_time.append(t_after_act - t_before_act)
+            self.record_act_time.append(t_act)
 
     def replay_curve(self):
         for i in range(len(self.end_pose_data)-2):
@@ -188,10 +191,11 @@ class EpisodeReplayer:
             self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_image_data()
 
-            time.sleep(max(0, 1 / self.fps - time.time() - t_before_act))
             t_after_act = time.time()
+            t_act = t_after_act - t_before_act
+            time.sleep(max(0, 1 / self.fps - t_act))
 
-            self.record_act_time.append(t_after_act - t_before_act)
+            self.record_act_time.append(t_act)
 
     def record_image_data(self):
         self.frames = self.pipeline.wait_for_frames()
