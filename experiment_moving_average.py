@@ -70,8 +70,8 @@ def plot_end_pose_data(list_of_end_pose_data, plot_legend):
 
 
 def main():
-    episode_name = 'curve_ctrl_test_2'
-    experiment_name = 'moving_average_2'
+    episode_name = 'paper_cup_3'
+    experiment_name = 'moving_average_3'
     end_pose_data = load_episode(episode_name)['robot']['end_pose_data']
 
     ref_data = np.array(end_pose_data)
@@ -109,6 +109,10 @@ def main():
 
     # data_to_plot = [ref_data, ref_data_re, ma_2_re, ma_5_re, ma_10_re]
     # plot_legend = ['ref_data', 'ref_data_re', 'ma_2_re', 'ma_5_re', 'ma_10_re']
+
+    # data_to_plot = [ref_data, ma_2, ma_5, ma_10]
+    # plot_legend = ['ref_data', 'ma_2', 'ma_5', 'ma_10']
+
     plot_end_pose_data(data_to_plot, plot_legend)
 
 

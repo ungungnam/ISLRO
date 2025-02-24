@@ -1,5 +1,5 @@
 import argparse
-
+import pyrealsense2 as rs
 from piper_sdk import *
 
 from robot_utils import *
@@ -18,13 +18,19 @@ class EpisodeReplayer:
         self.piper = C_PiperInterface("can0")
         self.piper.ConnectPort()
         self.piper.EnableArm(7)
-        setZeroConfiguration(self.piper)
+
+        self.rs_config = rs.config()
+        self.rs_config.enable_stream(rs.stream.color)
+        self.rs_config.enable_stream(rs.stream.depth)
+
+        self.pipeline = rs.pipeline()
+        self.pipeline.start(self.rs_config)
 
         self.valid_ctrl_modes = ['JointCtrl','EndPoseCtrl','ForwardKinematicsCtrl', 'CurveCtrl']
 
         self.record_end_pose = []
         self.record_act_time = []
-        self.fps = FPS
+        self.fps = REPLAY_FPS
         self.index = 0
 
         self.episode_data = load_episode(self.episode_name)
@@ -34,6 +40,9 @@ class EpisodeReplayer:
         # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'dataset/episode_{self.episode_name}.h5')
         # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'data_re.h5')
 
+        self.rev_end_pose_data = self.end_pose_data[::-1]
+        self.rev_gripper_data = self.gripper_data[::-1]
+
         self.prev_end_pose = self.end_pose_data[0].copy()
         self.prev_gripper = self.gripper_data[0].copy()
 
@@ -41,10 +50,19 @@ class EpisodeReplayer:
         self.gripper = self.gripper_data[0].copy()
         self.curve_points = self.end_pose_data[0:3].copy()
 
+        self.rev_end_pose = self.end_pose_data[-1].copy()
+        self.rev_gripper = self.gripper_data[-1].copy()
+
         self.detoured_end_pose = self.end_pose_data[0].copy()
         self.movement_detection = None
 
+        self.frames = None
+        self.depth_image, self.color_image = None, None
+        self.image_dataset, self.record_image_time = [],[]
+
     def replay(self):
+        setZeroConfiguration(self.piper)
+
         if self.control_mode in self.valid_ctrl_modes:
             if self.control_mode == 'JointCtrl':
                 self.replay_joint()
@@ -60,6 +78,10 @@ class EpisodeReplayer:
 
         print(f"average time on robot actuation : {np.mean(self.record_act_time)}")
         setZeroConfiguration(self.piper)
+        save_episode_image(self.image_dataset, self.episode_name)
+
+    def reverse_replay(self):
+        self.replay_end_pose(reversed=True)
 
     def replay_joint(self):
         for i in range(len(self.joint_data)):
@@ -71,21 +93,29 @@ class EpisodeReplayer:
 
             ctrlJoint(self.piper, joint, gripper)
 
-            time.sleep(1 / self.fps)
+            self.record_end_pose.append(readEndPoseMsg(self.piper))
+            self.record_image_data()
+
+            time.sleep(max(0, 1 / self.fps - time.time() - t_before_act))
             t_after_act = time.time()
 
-            self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_act_time.append(t_after_act - t_before_act)
 
-    def replay_end_pose(self):
+    def replay_end_pose(self, reversed=False):
         for i in range(len(self.end_pose_data)):
             self.index = i
             t_before_act = time.time()
 
-            self.end_pose = self.end_pose_data[self.index]
-            self.gripper = self.gripper_data[self.index]
+            if not reversed:
+                self.end_pose = self.end_pose_data[self.index]
+                self.gripper = self.gripper_data[self.index]
 
-            ctrlEndPose(self.piper, self.end_pose, self.gripper)
+                ctrlEndPose(self.piper, self.end_pose, self.gripper)
+            else:
+                self.rev_end_pose = self.rev_end_pose_data[self.index]
+                self.rev_gripper = self.rev_gripper_data[self.index]
+
+                ctrlEndPose(self.piper, self.rev_end_pose, self.rev_gripper)
 
             if self.alt_control_mode:
                 if not isMoved(self.piper, prev_data={
@@ -97,10 +127,12 @@ class EpisodeReplayer:
                 self.prev_end_pose = readEndPoseMsg(self.piper)
                 self.prev_gripper = readGripperMsg(self.piper)
 
-            time.sleep(1 / self.fps)
+            self.record_end_pose.append(readEndPoseMsg(self.piper))
+            self.record_image_data()
+
+            time.sleep(max(0, 1 / self.fps - time.time() - t_before_act))
             t_after_act = time.time()
 
-            self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_act_time.append(t_after_act - t_before_act)
 
     def replay_alt_ctrl(self):
@@ -132,10 +164,12 @@ class EpisodeReplayer:
 
             ctrlEndPose(self.piper, self.end_pose, self.gripper)
 
-            time.sleep(1 / self.fps)
+            self.record_end_pose.append(readEndPoseMsg(self.piper))
+            self.record_image_data()
+
+            time.sleep(max(0, 1 / self.fps - time.time() - t_before_act))
             t_after_act = time.time()
 
-            self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_act_time.append(t_after_act - t_before_act)
 
     def replay_curve(self):
@@ -151,11 +185,21 @@ class EpisodeReplayer:
 
             ctrlCurve(self.piper, self.curve_points, self.gripper)
 
-            time.sleep(1 / self.fps)
+            self.record_end_pose.append(readEndPoseMsg(self.piper))
+            self.record_image_data()
+
+            time.sleep(max(0, 1 / self.fps - time.time() - t_before_act))
             t_after_act = time.time()
 
-            self.record_end_pose.append(readEndPoseMsg(self.piper))
             self.record_act_time.append(t_after_act - t_before_act)
+
+    def record_image_data(self):
+        self.frames = self.pipeline.wait_for_frames()
+        self.depth_image = np.array(self.frames.get_depth_frame().get_data()).astype(np.uint8)
+        self.color_image = np.array(self.frames.get_color_frame().get_data()).astype(np.uint8)
+
+        self.color_image = cv2.resize(self.color_image, (self.depth_image.shape[1], self.depth_image.shape[0]))
+        self.image_data = [self.color_image, self.depth_image]
 
 
 if __name__ == "__main__":
