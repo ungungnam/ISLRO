@@ -45,6 +45,7 @@ def readGripperMsg(piper):
 
 def ctrlEndPose(piper, end_pose_data, gripper_data):
     gripper_angle, gripper_effort = gripper_data[:]
+    # gripper_effort = gripper_effort if gripper_effort > 0 else 0
 
     piper.MotionCtrl_2(0x01, 0x00, 20, 0x00)
     piper.EndPoseCtrl(*end_pose_data)
@@ -53,6 +54,7 @@ def ctrlEndPose(piper, end_pose_data, gripper_data):
 
 def ctrlJoint(piper, joint_data, gripper_data):
     gripper_angle, gripper_effort = gripper_data[:]
+    # gripper_effort = gripper_effort if gripper_effort > 0 else 0
 
     joint_data_int = joint_data.astype(np.int32)
     piper.MotionCtrl_2(0x01, 0x01, 20, 0x00)
@@ -62,6 +64,7 @@ def ctrlJoint(piper, joint_data, gripper_data):
 
 def ctrlCurve(piper, curve_points, gripper_data):
     gripper_angle, gripper_effort = gripper_data[:]
+    # gripper_effort = gripper_effort if gripper_effort > 0 else 0
     p0, p1, p2 = curve_points
 
     piper.MotionCtrl_2(0x01, 0x03, 30, 0x00)

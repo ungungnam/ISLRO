@@ -1,11 +1,5 @@
 import argparse
-import os
-import json
-import pickle
 from tqdm import tqdm
-import h5py
-import cv2
-import time
 
 import pyrealsense2 as rs
 
@@ -20,19 +14,19 @@ class EpisodeRecorder:
         self.episode_len = args['episode_len']
         self.episode_name = args['episode_name']
 
-        self.task_config = config()
+        self.task_config = replay_config()
         self.task_config['EPISODE_LEN'] = self.episode_len
 
         self.piper = C_PiperInterface("can0")
         self.piper.ConnectPort()
         self.piper.EnableArm(7)
 
-        self.rs_config = rs.config()
-        self.rs_config.enable_stream(rs.stream.color)
-        self.rs_config.enable_stream(rs.stream.depth)
-
-        self.pipeline = rs.pipeline()
-        self.pipeline.start(self.rs_config)
+        # self.rs_config = rs.config()
+        # self.rs_config.enable_stream(rs.stream.color)
+        # self.rs_config.enable_stream(rs.stream.depth)
+        #
+        # self.pipeline = rs.pipeline()
+        # self.pipeline.start(self.rs_config)
 
         self.episode_len = self.task_config["EPISODE_LEN"]
         self.fps = self.task_config["FPS"]
@@ -46,17 +40,17 @@ class EpisodeRecorder:
         self.index = 0
 
         self.robot_data = None
-        self.image_data = None
+        # self.image_data = None
         self.robot_time_data = None
 
-        self.frames = None
-        self.depth_image, self.color_image = None, None
+        # self.frames = None
+        # self.depth_image, self.color_image = None, None
 
         self.robot_dataset = []
-        self.image_dataset = []
+        # self.image_dataset = []
 
         self.record_robot_time = []
-        self.record_image_time = []
+        # self.record_image_time = []
 
         self.is_healthy = True
 
@@ -81,9 +75,9 @@ class EpisodeRecorder:
 
         print(f"average Hz : {self.max_timestep / (t1-t0)}")
         print(f"average time on recording robot data : {np.mean(self.record_robot_time)}")
-        print(f"average time on recording image data : {np.mean(self.record_image_time)}")
+        # print(f"average time on recording image data : {np.mean(self.record_image_time)}")
 
-        save_episode(self.robot_dataset, self.image_dataset, self.episode_name)
+        save_episode(self.episode_name, self.robot_dataset)
 
     def capture_timestep(self):
         self.t_start = time.time()
@@ -91,8 +85,8 @@ class EpisodeRecorder:
         self.record_robot_data()
         self.t_robot = time.time()
 
-        self.record_image_data()
-        self.t_image = time.time()
+        # self.record_image_data()
+        # self.t_image = time.time()
 
         self.robot_time_data = {
             "index": self.index,
@@ -101,28 +95,28 @@ class EpisodeRecorder:
         }
 
         self.robot_dataset.append(self.robot_time_data)
-        self.image_dataset.append(self.image_data)
+        # self.image_dataset.append(self.image_data)
 
         self.record_robot_time.append(self.t_robot - self.t_start)
-        self.record_image_time.append(self.t_image - self.t_start)
+        # self.record_image_time.append(self.t_image - self.t_start)
 
         time.sleep(max(0, self.dt - (time.time() - self.t_start)))
         return True
 
     def record_robot_data(self):
         self.robot_data = {
-            "joint_data": readJointCtrl(self.piper),
-            "gripper_data": readGripperCtrl(self.piper),
+            "joint_data": readJointMsg(self.piper),
+            "gripper_data": readGripperMsg(self.piper),
             "end_pose_data": readEndPoseMsg(self.piper),
         }
 
-    def record_image_data(self):
-        self.frames = self.pipeline.wait_for_frames()
-        self.depth_image = np.array(self.frames.get_depth_frame().get_data()).astype(np.uint8)
-        self.color_image = np.array(self.frames.get_color_frame().get_data()).astype(np.uint8)
-
-        self.color_image = cv2.resize(self.color_image, (self.depth_image.shape[1], self.depth_image.shape[0]))
-        self.image_data = [self.color_image, self.depth_image]
+    # def record_image_data(self):
+    #     self.frames = self.pipeline.wait_for_frames()
+    #     self.depth_image = np.array(self.frames.get_depth_frame().get_data()).astype(np.uint8)
+    #     self.color_image = np.array(self.frames.get_color_frame().get_data()).astype(np.uint8)
+    #
+    #     self.color_image = cv2.resize(self.color_image, (self.depth_image.shape[1], self.depth_image.shape[0]))
+    #     self.image_data = [self.color_image, self.depth_image]
 
 
 if __name__ == '__main__':

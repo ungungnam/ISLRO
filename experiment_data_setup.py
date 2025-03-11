@@ -12,6 +12,7 @@ def _experiment(episode_name, modified_end_pose_data, delay= False):
     })
 
     episode_replayer.end_pose_data = modified_end_pose_data
+    episode_replayer.is_experiment = True
 
     if delay:
         delay_size = 5 // 2
@@ -19,8 +20,13 @@ def _experiment(episode_name, modified_end_pose_data, delay= False):
         episode_replayer.gripper_data[delay_size:] = delayed_gripper
 
     episode_replayer.replay()
-    recorded_end_pose = episode_replayer.record_end_pose
 
+    robot_dataset = episode_replayer.robot_dataset
+    recorded_end_pose = []
+    for robot_data in robot_dataset:
+        recorded_end_pose.append(robot_data['robot']['end_pose_data'])
+
+    recorded_end_pose = np.array(recorded_end_pose)
     return recorded_end_pose
 
 
@@ -127,7 +133,7 @@ def plot_end_pose_data(list_of_end_pose_data, plot_legend):
 
 
 def main():
-    episode_name = 'paper_cup_3'
+    episode_name = 'test2'
     experiment_name = 'opt_data_setup'
     joint_data = load_episode(episode_name)['robot']['joint_data']
     end_pose_data = load_episode(episode_name)['robot']['end_pose_data']
@@ -137,20 +143,20 @@ def main():
     end_pose_data_alt_ctrl = alternate_data(end_pose_data_threshold, joint_data, indices)
     end_pose_data_ma5 = get_moving_average(end_pose_data_alt_ctrl, 5)
 
-    # end_pose_data_re = _experiment(episode_name, end_pose_data)
-    # end_pose_data_threshold_re = _experiment(episode_name, end_pose_data_threshold)
-    # end_pose_data_alt_ctrl_re = _experiment(episode_name, end_pose_data_alt_ctrl)
-    # end_pose_data_ma5_re = _experiment(episode_name, end_pose_data_ma5, delay= True)
+    ref_data_re = _experiment(episode_name, end_pose_data)
+    end_pose_data_threshold_re = _experiment(episode_name, end_pose_data_threshold)
+    end_pose_data_alt_ctrl_re = _experiment(episode_name, end_pose_data_alt_ctrl)
+    end_pose_data_ma5_re = _experiment(episode_name, end_pose_data_ma5, delay= True)
 
     save_exp_csv(ref_data, 'ref_data', experiment_name)
     save_exp_csv(end_pose_data_threshold, 'threshold_data', experiment_name)
     save_exp_csv(end_pose_data_alt_ctrl, 'altered_data', experiment_name)
     save_exp_csv(end_pose_data_ma5, 'ma5_data', experiment_name)
 
-    # save_exp_csv(end_pose_data_re, 'ref_data_re', experiment_name)
-    # save_exp_csv(end_pose_data_threshold_re, 'threshold_data_re', experiment_name)
-    # save_exp_csv(end_pose_data_alt_ctrl_re, 'altered_data_re', experiment_name)
-    # save_exp_csv(end_pose_data_ma5_re, 'ma_5_re', experiment_name)
+    save_exp_csv(ref_data_re, 'ref_data_re', experiment_name)
+    save_exp_csv(end_pose_data_threshold_re, 'threshold_data_re', experiment_name)
+    save_exp_csv(end_pose_data_alt_ctrl_re, 'altered_data_re', experiment_name)
+    save_exp_csv(end_pose_data_ma5_re, 'ma_5_re', experiment_name)
 
     # ref_data = load_exp_csv(experiment_name, 'ref_data')
     # end_pose_data_threshold = load_exp_csv(experiment_name, 'threshold_data')
@@ -162,14 +168,14 @@ def main():
     # end_pose_data_alt_ctrl_re = load_exp_csv(experiment_name, 'end_pose_data_alt_ctrl_re')
     # end_pose_data_ma5_re = load_exp_csv(experiment_name, 'ma_5_re')
 
-    # data_to_plot = [ref_data, end_pose_data_threshold, end_pose_data_alt_ctrl, end_pose_data_ma5, ref_data_re, end_pose_data_threshold_re, end_pose_data_alt_ctrl_re, end_pose_data_ma5_re]
-    # plot_legend = ['ref_data', 'end_pose_data_threshold', 'end_pose_data_alt_ctrl', 'end_pose_data_ma_5', 'ref_data_re', 'end_pose_data_threshold_re', 'end_pose_data_alt_ctrl_re', 'end_pose_data_ma_5_re']
+    data_to_plot = [ref_data, end_pose_data_threshold, end_pose_data_alt_ctrl, end_pose_data_ma5, ref_data_re, end_pose_data_threshold_re, end_pose_data_alt_ctrl_re, end_pose_data_ma5_re]
+    plot_legend = ['ref_data', 'end_pose_data_threshold', 'end_pose_data_alt_ctrl', 'end_pose_data_ma_5', 'ref_data_re', 'end_pose_data_threshold_re', 'end_pose_data_alt_ctrl_re', 'end_pose_data_ma_5_re']
 
     # data_to_plot = [ref_data, ref_data_re, end_pose_data_threshold_re, end_pose_data_alt_ctrl_re, ma_5_re]
     # plot_legend = ['ref_data', 'ref_data_re', 'end_pose_data_threshold_re', 'end_pose_data_alt_ctrl_re', 'ma_5_re']
 
-    data_to_plot = [ref_data, end_pose_data_threshold, end_pose_data_alt_ctrl, end_pose_data_ma5]
-    plot_legend = ['ref_data', 'end_pose_data_threshold', 'end_pose_data_alt_ctrl', 'end_pose_data_ma_5']
+    # data_to_plot = [ref_data, end_pose_data_threshold, end_pose_data_alt_ctrl, end_pose_data_ma5]
+    # plot_legend = ['ref_data', 'end_pose_data_threshold', 'end_pose_data_alt_ctrl', 'end_pose_data_ma_5']
 
     plot_end_pose_data(data_to_plot, plot_legend)
 

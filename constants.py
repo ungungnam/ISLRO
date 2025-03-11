@@ -7,14 +7,18 @@ RECORD_FPS = 30
 SERVER_IP = "147.47.239.153"
 FK_CALC = C_PiperForwardKinematics()
 MOVEMENT_THRESHOLD = 50
-DATASET_DIR = 'dataset'
+RECORD_DATASET_DIR = 'record'
+REPLAY_DATASET_DIR = 'replay'
 
-class Config:
+WRIST_CAM_SN = "f1150781"
+EXO_CAM_SN = "f1371608"
+
+class replayConfig:
     def __init__(self):
         # Initialize the default values of your configuration
         self.config_dict = {
             'FPS': RECORD_FPS,                  # Default frames per second
-            'DATASET_DIR': DATASET_DIR,  # Default path for dataset directory
+            'DATASET_DIR': RECORD_DATASET_DIR,  # Default path for dataset directory
             'EPISODE_LEN': 10,         # Default episode length (can be overridden)
         }
 
@@ -31,8 +35,8 @@ class Config:
         return self.config_dict
 
 
-def config():
-    return Config().to_dict()
+def replay_config():
+    return replayConfig().to_dict()
 
 
 def deg2rad(deg):

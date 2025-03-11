@@ -1,6 +1,9 @@
 import argparse
+import threading
+
 import pyrealsense2 as rs
 from piper_sdk import *
+from torch.distributed.pipeline.sync import pipe
 
 from robot_utils import *
 from data_utils import *
@@ -14,17 +17,32 @@ class EpisodeReplayer:
         self.alt_control_mode = self.args['alt_control_mode'] if 'alt_control_mode' in self.args else None
 
         self.fk_calc = FK_CALC
+        self.is_experiment = False
 
         self.piper = C_PiperInterface("can0")
         self.piper.ConnectPort()
         self.piper.EnableArm(7)
 
-        self.rs_config = rs.config()
-        self.rs_config.enable_stream(rs.stream.color)
-        self.rs_config.enable_stream(rs.stream.depth)
+        self.wrist_rs_config = rs.config()
+        self.exo_rs_config = rs.config()
 
-        self.pipeline = rs.pipeline()
-        self.pipeline.start(self.rs_config)
+        self.wrist_cam_sn = WRIST_CAM_SN
+        self.exo_cam_sn = EXO_CAM_SN
+
+        self.wrist_rs_config.enable_device(self.wrist_cam_sn)
+        self.exo_rs_config.enable_device(self.exo_cam_sn)
+
+        self.wrist_rs_config.enable_stream(rs.stream.color)
+        self.wrist_rs_config.enable_stream(rs.stream.depth)
+
+        self.exo_rs_config.enable_stream(rs.stream.color)
+        self.exo_rs_config.enable_stream(rs.stream.depth)
+
+        self.wrist_rs_pipeline = rs.pipeline()
+        self.exo_rs_pipeline = rs.pipeline()
+
+        self.wrist_rs_pipeline.start(self.wrist_rs_config)
+        self.exo_rs_pipeline.start(self.exo_rs_config)
 
         self.valid_ctrl_modes = ['JointCtrl','EndPoseCtrl','ForwardKinematicsCtrl', 'CurveCtrl']
 
@@ -33,9 +51,13 @@ class EpisodeReplayer:
         self.fps = REPLAY_FPS
         self.index = 0
 
+        self.dataset_dir = REPLAY_DATASET_DIR
+        self.create_dir()
+
         self.episode_data = load_episode(self.episode_name)
         self.joint_data = self.episode_data['robot']['joint_data']
-        self.gripper_data = self.episode_data['robot']['gripper_data']
+        self.gripper_data = np.abs(self.episode_data['robot']['gripper_data'])
+        # self.gripper_data = self.episode_data['robot']['gripper_data']
         self.end_pose_data = self.episode_data['robot']['end_pose_data']
         # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'dataset/episode_{self.episode_name}.h5')
         # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'data_re.h5')
@@ -56,13 +78,30 @@ class EpisodeReplayer:
         self.detoured_end_pose = self.end_pose_data[0].copy()
         self.movement_detection = None
 
-        self.frames = None
-        self.depth_image, self.color_image = None, None
-        self.image_dataset, self.record_image_time = [],[]
+        self.robot_dataset, self.record_robot_time = [],[]
+        self.robot_data, self.robot_time_data = None, None
+
+        self.image_dataset = None
+        self.wrist_image_data, self.exo_image_data = None, None
+        self.wrist_frames, self.exo_frames = None, None
+        self.wrist_depth_image, self.wrist_color_image = None, None
+        self.exo_depth_image, self.exo_color_image = None, None
+        self.wrist_image_dataset, self.exo_image_dataset, self.record_image_time = [],[], []
+
+        self.is_replay_finished = False
+        self.lock = threading.Lock()
+
+        self.wrist_image_thread = threading.Thread(target=self.fetch_image_data, args=(self.wrist_rs_pipeline,True))
+        self.exo_image_thread = threading.Thread(target=self.fetch_image_data, args=(self.exo_rs_pipeline,False))
+
 
     def replay(self):
         setZeroConfiguration(self.piper)
 
+        self.wrist_image_thread.start()
+        self.exo_image_thread.start()
+
+        t0 = time.time()
         if self.control_mode in self.valid_ctrl_modes:
             if self.control_mode == 'JointCtrl':
                 self.replay_joint()
@@ -76,12 +115,61 @@ class EpisodeReplayer:
             print(f"Invalid control mode\n Try {self.valid_ctrl_modes}")
             exit()
 
+        self.is_replay_finished = True
+        t1 = time.time()
+
+        print(f"average time on image record : {np.mean(self.record_image_time)}")
+        print(f"average time on robot record : {np.mean(self.record_robot_time)}")
         print(f"average time on robot actuation : {np.mean(self.record_act_time)}")
+        print(f"average Hz : {len(self.end_pose_data)/(t1 - t0)}")
+
         setZeroConfiguration(self.piper)
-        save_episode_image(self.image_dataset, self.episode_name)
+
+        self.image_dataset={
+            'wrist_image_dataset': self.wrist_image_dataset,
+            'exo_image_dataset': self.exo_image_dataset,
+        }
+
+        if not self.is_experiment:
+            save_episode(self.episode_name, self.robot_dataset, image_dataset=self.image_dataset,is_record=False)
+        else:
+            pass
 
     def reverse_replay(self):
         self.replay_end_pose(reversed=True)
+
+    def record_robot_data(self):
+        self.robot_data = {
+            "joint_data": readJointMsg(self.piper),
+            "gripper_data": readGripperMsg(self.piper),
+            "end_pose_data": readEndPoseMsg(self.piper),
+        }
+
+    def record_data(self):
+        t0=time.time()
+        self.record_robot_data()
+        t1=time.time()
+        self.record_image_data()
+        t2=time.time()
+
+        t_robot = t1-t0
+        t_image = t2-t1
+
+        self.robot_time_data = {
+            "index": self.index,
+            "timestamp": t_robot,
+            "robot": self.robot_data,
+        }
+
+        self.robot_dataset.append(self.robot_time_data)
+
+        while self.wrist_image_data is None or self.exo_image_data is None:
+            pass
+        self.wrist_image_dataset.append(self.wrist_image_data)
+        self.exo_image_dataset.append(self.exo_image_data)
+
+        self.record_robot_time.append(t_robot)
+        self.record_image_time.append(t_image)
 
     def replay_joint(self):
         for i in range(len(self.joint_data)):
@@ -93,8 +181,7 @@ class EpisodeReplayer:
 
             ctrlJoint(self.piper, joint, gripper)
 
-            self.record_end_pose.append(readEndPoseMsg(self.piper))
-            self.record_image_data()
+            self.record_data()
 
             t_after_act = time.time()
             t_act = t_after_act - t_before_act
@@ -128,8 +215,7 @@ class EpisodeReplayer:
                 self.prev_end_pose = readEndPoseMsg(self.piper)
                 self.prev_gripper = readGripperMsg(self.piper)
 
-            self.record_end_pose.append(readEndPoseMsg(self.piper))
-            self.record_image_data()
+            self.record_data()
 
             t_after_act = time.time()
             t_act = t_after_act - t_before_act
@@ -166,8 +252,7 @@ class EpisodeReplayer:
 
             ctrlEndPose(self.piper, self.end_pose, self.gripper)
 
-            self.record_end_pose.append(readEndPoseMsg(self.piper))
-            self.record_image_data()
+            self.record_data()
 
             t_after_act = time.time()
             t_act = t_after_act - t_before_act
@@ -188,8 +273,7 @@ class EpisodeReplayer:
 
             ctrlCurve(self.piper, self.curve_points, self.gripper)
 
-            self.record_end_pose.append(readEndPoseMsg(self.piper))
-            self.record_image_data()
+            self.record_data()
 
             t_after_act = time.time()
             t_act = t_after_act - t_before_act
@@ -198,26 +282,62 @@ class EpisodeReplayer:
             self.record_act_time.append(t_act)
 
     def record_image_data(self):
-        self.frames = self.pipeline.wait_for_frames()
-        self.depth_image = np.array(self.frames.get_depth_frame().get_data()).astype(np.uint8)
-        self.color_image = np.array(self.frames.get_color_frame().get_data()).astype(np.uint8)
+        # self.wrist_image_thread = threading.Thread(target=self.fetch_image_data(self.wrist_rs_pipeline,True))
+        # self.exo_image_thread = threading.Thread(target=self.fetch_image_data(self.exo_rs_pipeline,False))
+        #
+        # self.wrist_image_thread.start()
+        # self.exo_image_thread.start()
+        #
+        # self.wrist_image_thread.join()
+        # self.exo_image_thread.join()
+        # print('image fetched')
+        pass
 
-        self.color_image = cv2.resize(self.color_image, (self.depth_image.shape[1], self.depth_image.shape[0]))
-        self.image_data = [self.color_image, self.depth_image]
+    def fetch_image_data(self, pipeline, is_wrist):
+        while True:
+            t0 = time.time()
+            frames = pipeline.wait_for_frames()
+            depth_image = np.array(frames.get_depth_frame().get_data()).astype(np.uint8)
+            color_image = np.array(frames.get_color_frame().get_data()).astype(np.uint8)
+
+            image_data = [color_image, depth_image]
+
+            self.lock.acquire()
+            if is_wrist:
+                self.wrist_image_data = image_data
+            else:
+                self.exo_image_data = image_data
+            self.lock.release()
+
+            t1 = time.time()
+            time.sleep(max(0,1/REPLAY_FPS-(t1-t0)))
+
+            if self.is_replay_finished:
+                break
+
+    def create_dir(self):
+        if not os.path.isdir(self.dataset_dir):
+            os.makedirs(self.dataset_dir)
+        try:
+            if not os.path.exists(f"{self.dataset_dir}/{self.episode_name}"):
+                os.makedirs(f"{self.dataset_dir}/{self.episode_name}")
+        except OSError:
+            print(f"Error: Creating directory. {self.episode_name}")
+            exit()
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--episode_name', type=str, required=True)
-    parser.add_argument('--control_mode', type=str, required=True)
-    parser.add_argument('--alt_control_mode', type=str, required=False)
-    args = vars(parser.parse_args())
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--episode_name', type=str, required=True)
+    # parser.add_argument('--control_mode', type=str, required=True)
+    # parser.add_argument('--alt_control_mode', type=str, required=False)
+    # args = vars(parser.parse_args())
+    #
+    # episode_replayer = EpisodeReplayer(args)
 
-    episode_replayer = EpisodeReplayer(args)
-
-    # episode_replayer = EpisodeReplayer({
-    #     'episode_name': 'curve_ctrl_test',
-    #     'control_mode': 'CurveCtrl',
-    # })
+    episode_replayer = EpisodeReplayer({
+        'episode_name': 'wrist_cam_test',
+        'control_mode': 'EndPoseCtrl',
+    })
 
     episode_replayer.replay()
