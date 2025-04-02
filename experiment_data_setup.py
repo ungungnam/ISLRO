@@ -143,30 +143,30 @@ def main():
     end_pose_data_alt_ctrl = alternate_data(end_pose_data_threshold, joint_data, indices)
     end_pose_data_ma5 = get_moving_average(end_pose_data_alt_ctrl, 5)
 
-    ref_data_re = _experiment(episode_name, end_pose_data)
-    end_pose_data_threshold_re = _experiment(episode_name, end_pose_data_threshold)
-    end_pose_data_alt_ctrl_re = _experiment(episode_name, end_pose_data_alt_ctrl)
-    end_pose_data_ma5_re = _experiment(episode_name, end_pose_data_ma5, delay= True)
-
-    save_exp_csv(ref_data, 'ref_data', experiment_name)
-    save_exp_csv(end_pose_data_threshold, 'threshold_data', experiment_name)
-    save_exp_csv(end_pose_data_alt_ctrl, 'altered_data', experiment_name)
-    save_exp_csv(end_pose_data_ma5, 'ma5_data', experiment_name)
-
-    save_exp_csv(ref_data_re, 'ref_data_re', experiment_name)
-    save_exp_csv(end_pose_data_threshold_re, 'threshold_data_re', experiment_name)
-    save_exp_csv(end_pose_data_alt_ctrl_re, 'altered_data_re', experiment_name)
-    save_exp_csv(end_pose_data_ma5_re, 'ma_5_re', experiment_name)
-
-    # ref_data = load_exp_csv(experiment_name, 'ref_data')
-    # end_pose_data_threshold = load_exp_csv(experiment_name, 'threshold_data')
-    # end_pose_data_alt_ctrl = load_exp_csv(experiment_name, 'end_pose_data_alt_ctrl')
-    # end_pose_data_ma5 = load_exp_csv(experiment_name, 'ma_5')
+    # ref_data_re = _experiment(episode_name, end_pose_data)
+    # end_pose_data_threshold_re = _experiment(episode_name, end_pose_data_threshold)
+    # end_pose_data_alt_ctrl_re = _experiment(episode_name, end_pose_data_alt_ctrl)
+    # end_pose_data_ma5_re = _experiment(episode_name, end_pose_data_ma5, delay= True)
     #
-    # ref_data_re = load_exp_csv(experiment_name, 'ref_data')
-    # end_pose_data_threshold_re = load_exp_csv(experiment_name, 'threshold_data_re')
-    # end_pose_data_alt_ctrl_re = load_exp_csv(experiment_name, 'end_pose_data_alt_ctrl_re')
-    # end_pose_data_ma5_re = load_exp_csv(experiment_name, 'ma_5_re')
+    # save_exp_csv(ref_data, 'ref_data', experiment_name)
+    # save_exp_csv(end_pose_data_threshold, 'threshold_data', experiment_name)
+    # save_exp_csv(end_pose_data_alt_ctrl, 'altered_data', experiment_name)
+    # save_exp_csv(end_pose_data_ma5, 'ma5_data', experiment_name)
+    #
+    # save_exp_csv(ref_data_re, 'ref_data_re', experiment_name)
+    # save_exp_csv(end_pose_data_threshold_re, 'threshold_data_re', experiment_name)
+    # save_exp_csv(end_pose_data_alt_ctrl_re, 'altered_data_re', experiment_name)
+    # save_exp_csv(end_pose_data_ma5_re, 'ma_5_re', experiment_name)
+
+    ref_data = load_exp_csv(experiment_name, 'ref_data')
+    end_pose_data_threshold = load_exp_csv(experiment_name, 'threshold_data')
+    end_pose_data_alt_ctrl = load_exp_csv(experiment_name, 'end_pose_data_alt_ctrl')
+    end_pose_data_ma5 = load_exp_csv(experiment_name, 'ma_5')
+
+    ref_data_re = load_exp_csv(experiment_name, 'ref_data')
+    end_pose_data_threshold_re = load_exp_csv(experiment_name, 'threshold_data_re')
+    end_pose_data_alt_ctrl_re = load_exp_csv(experiment_name, 'end_pose_data_alt_ctrl_re')
+    end_pose_data_ma5_re = load_exp_csv(experiment_name, 'ma_5_re')
 
     data_to_plot = [ref_data, end_pose_data_threshold, end_pose_data_alt_ctrl, end_pose_data_ma5, ref_data_re, end_pose_data_threshold_re, end_pose_data_alt_ctrl_re, end_pose_data_ma5_re]
     plot_legend = ['ref_data', 'end_pose_data_threshold', 'end_pose_data_alt_ctrl', 'end_pose_data_ma_5', 'ref_data_re', 'end_pose_data_threshold_re', 'end_pose_data_alt_ctrl_re', 'end_pose_data_ma_5_re']

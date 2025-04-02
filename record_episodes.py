@@ -91,7 +91,8 @@ class EpisodeRecorder:
         self.robot_time_data = {
             "index": self.index,
             "timestamp": self.t_robot-self.t_start,
-            "robot": self.robot_data,
+            "state": self.robot_data,
+            "action": self.robot_data,
         }
 
         self.robot_dataset.append(self.robot_time_data)

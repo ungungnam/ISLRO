@@ -5,7 +5,6 @@ import numpy as np
 from constants import *
 
 def setZeroConfiguration(piper):
-    piper.MotionCtrl_2(0x01, 0x01, 20, 0x00)
     piper.JointCtrl(0, 0, 0, 0, 0, 0)
     piper.GripperCtrl(0,0, 0x01, 0)
     piper.MotionCtrl_2(0x01, 0x01, 20, 0x00)

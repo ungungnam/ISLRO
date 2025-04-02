@@ -14,7 +14,8 @@ class EpisodeReplayer:
         self.args = args
         self.episode_name = self.args['episode_name']
         self.control_mode = self.args['control_mode']
-        self.alt_control_mode = self.args['alt_control_mode'] if 'alt_control_mode' in self.args else None
+        # self.alt_control_mode = self.args['alt_control_mode'] if 'alt_control_mode' in self.args else None
+        self.alt_control_mode = 'DetourEndPoseCtrl'
 
         self.fk_calc = FK_CALC
         self.is_experiment = False
@@ -28,9 +29,11 @@ class EpisodeReplayer:
 
         self.wrist_cam_sn = WRIST_CAM_SN
         self.exo_cam_sn = EXO_CAM_SN
+        self.table_cam_sn = TABLE_CAM_SN
 
         self.wrist_rs_config.enable_device(self.wrist_cam_sn)
         self.exo_rs_config.enable_device(self.exo_cam_sn)
+        self.table_rs_config.enable_device(self.table_cam_sn)
 
         self.wrist_rs_config.enable_stream(rs.stream.color)
         self.wrist_rs_config.enable_stream(rs.stream.depth)
@@ -38,11 +41,16 @@ class EpisodeReplayer:
         self.exo_rs_config.enable_stream(rs.stream.color)
         self.exo_rs_config.enable_stream(rs.stream.depth)
 
+        self.table_rs_config.enable_stream(rs.stream.color)
+        self.table_rs_config.enable_stream(rs.stream.depth)
+
         self.wrist_rs_pipeline = rs.pipeline()
         self.exo_rs_pipeline = rs.pipeline()
+        self.table_rs_pipeline = rs.pipeline()
 
         self.wrist_rs_pipeline.start(self.wrist_rs_config)
         self.exo_rs_pipeline.start(self.exo_rs_config)
+        self.table_rs_pipeline.start(self.table_rs_config)
 
         self.valid_ctrl_modes = ['JointCtrl','EndPoseCtrl','ForwardKinematicsCtrl', 'CurveCtrl']
 
@@ -55,10 +63,10 @@ class EpisodeReplayer:
         self.create_dir()
 
         self.episode_data = load_episode(self.episode_name)
-        self.joint_data = self.episode_data['robot']['joint_data']
-        self.gripper_data = np.abs(self.episode_data['robot']['gripper_data'])
+        self.joint_data = self.episode_data['action']['joint_data']
+        self.gripper_data = np.abs(self.episode_data['action']['gripper_data'])
         # self.gripper_data = self.episode_data['robot']['gripper_data']
-        self.end_pose_data = self.episode_data['robot']['end_pose_data']
+        self.end_pose_data = self.episode_data['action']['end_pose_data']
         # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'dataset/episode_{self.episode_name}.h5')
         # self.joint_data, self.gripper_data, self.end_pose_data = load_h5_data(file_name=f'data_re.h5')
 
@@ -68,6 +76,7 @@ class EpisodeReplayer:
         self.prev_end_pose = self.end_pose_data[0].copy()
         self.prev_gripper = self.gripper_data[0].copy()
 
+        self.joint = self.joint_data[0].copy()
         self.end_pose = self.end_pose_data[0].copy()
         self.gripper = self.gripper_data[0].copy()
         self.curve_points = self.end_pose_data[0:3].copy()
@@ -80,19 +89,21 @@ class EpisodeReplayer:
 
         self.robot_dataset, self.record_robot_time = [],[]
         self.robot_data, self.robot_time_data = None, None
+        self.state, self.action = {}, {}
 
         self.image_dataset = None
-        self.wrist_image_data, self.exo_image_data = None, None
-        self.wrist_frames, self.exo_frames = None, None
-        self.wrist_depth_image, self.wrist_color_image = None, None
-        self.exo_depth_image, self.exo_color_image = None, None
-        self.wrist_image_dataset, self.exo_image_dataset, self.record_image_time = [],[], []
+        self.wrist_image_data, self.exo_image_data, self.table_image_data = None, None, None
+        self.wrist_frames, self.exo_frames, self.table_frames = None, None, None
+        self.wrist_depth_image, self.wrist_color_image, self.exo_depth_image, self.exo_color_image, self.table_depth_image, self.table_color_image = None, None, None, None, None, None
+        self.wrist_image_dataset, self.exo_image_dataset, self.table_image_dataset = [], [], []
+        self.record_image_time = []
 
         self.is_replay_finished = False
         self.lock = threading.Lock()
 
-        self.wrist_image_thread = threading.Thread(target=self.fetch_image_data, args=(self.wrist_rs_pipeline,True))
-        self.exo_image_thread = threading.Thread(target=self.fetch_image_data, args=(self.exo_rs_pipeline,False))
+        self.wrist_image_thread = threading.Thread(target=self.fetch_image_data, args=(self.wrist_rs_pipeline,'wrist'))
+        self.exo_image_thread = threading.Thread(target=self.fetch_image_data, args=(self.exo_rs_pipeline,'exo'))
+        self.table_image_thread = threading.Thread(target=self.fetch_image_data, args=(self.table_rs_pipeline,'table'))
 
 
     def replay(self):
@@ -100,6 +111,7 @@ class EpisodeReplayer:
 
         self.wrist_image_thread.start()
         self.exo_image_thread.start()
+        self.table_image_thread.start()
 
         t0 = time.time()
         if self.control_mode in self.valid_ctrl_modes:
@@ -128,6 +140,7 @@ class EpisodeReplayer:
         self.image_dataset={
             'wrist_image_dataset': self.wrist_image_dataset,
             'exo_image_dataset': self.exo_image_dataset,
+            'table_image_dataset': self.table_image_dataset,
         }
 
         if not self.is_experiment:
@@ -139,10 +152,16 @@ class EpisodeReplayer:
         self.replay_end_pose(reversed=True)
 
     def record_robot_data(self):
-        self.robot_data = {
+        self.state = {
             "joint_data": readJointMsg(self.piper),
             "gripper_data": readGripperMsg(self.piper),
             "end_pose_data": readEndPoseMsg(self.piper),
+        }
+
+        self.action = {
+            "joint_data": self.joint,
+            "gripper_data": self.gripper,
+            "end_pose_data": self.end_pose
         }
 
     def record_data(self):
@@ -158,15 +177,17 @@ class EpisodeReplayer:
         self.robot_time_data = {
             "index": self.index,
             "timestamp": t_robot,
-            "robot": self.robot_data,
+            "state": self.state,
+            "action":self.action
         }
 
         self.robot_dataset.append(self.robot_time_data)
 
-        while self.wrist_image_data is None or self.exo_image_data is None:
+        while self.wrist_image_data is None or self.exo_image_data is None or self.table_image_data is None:
             pass
         self.wrist_image_dataset.append(self.wrist_image_data)
         self.exo_image_dataset.append(self.exo_image_data)
+        self.table_image_dataset.append(self.table_image_data)
 
         self.record_robot_time.append(t_robot)
         self.record_image_time.append(t_image)
@@ -176,10 +197,10 @@ class EpisodeReplayer:
             self.index = i
             t_before_act = time.time()
 
-            joint = self.joint_data[self.index]
-            gripper = self.gripper_data[self.index]
+            self.joint = self.joint_data[self.index]
+            self.gripper = self.gripper_data[self.index]
 
-            ctrlJoint(self.piper, joint, gripper)
+            ctrlJoint(self.piper, self.joint, self.gripper)
 
             self.record_data()
 
@@ -225,10 +246,12 @@ class EpisodeReplayer:
 
     def replay_alt_ctrl(self):
         if self.alt_control_mode == 'DetourEndPoseCtrl':
-            joint = deg2rad(0.001 * self.joint_data[self.index])
+            self.joint = self.joint_data[self.index]
+            joint = deg2rad(0.001 * self.joint)
             self.detoured_end_pose = self.get_detoured_end_pose(joint)
 
-            ctrlEndPose(self.piper, self.detoured_end_pose, self.gripper)
+            self.end_pose = self.detoured_end_pose
+            ctrlEndPose(self.piper, self.end_pose, self.gripper)
 
         elif self.alt_control_mode == 'JointCtrl':
             ctrlJoint(self.piper, self.joint_data[self.index], self.gripper)
@@ -293,7 +316,7 @@ class EpisodeReplayer:
         # print('image fetched')
         pass
 
-    def fetch_image_data(self, pipeline, is_wrist):
+    def fetch_image_data(self, pipeline, cam_mode):
         while True:
             t0 = time.time()
             frames = pipeline.wait_for_frames()
@@ -303,10 +326,12 @@ class EpisodeReplayer:
             image_data = [color_image, depth_image]
 
             self.lock.acquire()
-            if is_wrist:
+            if cam_mode == 'wrist':
                 self.wrist_image_data = image_data
-            else:
+            elif cam_mode == 'exo':
                 self.exo_image_data = image_data
+            else:
+                self.table_image_data = image_data
             self.lock.release()
 
             t1 = time.time()
@@ -336,7 +361,7 @@ if __name__ == "__main__":
     # episode_replayer = EpisodeReplayer(args)
 
     episode_replayer = EpisodeReplayer({
-        'episode_name': 'wrist_cam_test',
+        'episode_name': 'aligncups_episode21',
         'control_mode': 'EndPoseCtrl',
     })
 

@@ -40,22 +40,33 @@ def load_episode(episode_name):
 
 def save_episode_robot(robot_dataset, episode_name,is_record):
     index, timestamp = [],[]
-    joint, gripper, end_pose = [],[],[]
+    state_joint, state_gripper, state_end_pose = [],[],[]
+    action_joint, action_gripper, action_end_pose = [],[],[]
+
     for data in robot_dataset:
         index.append(data['index'])
         timestamp.append(data['timestamp'])
 
-        joint.append(data['robot']['joint_data'])
-        gripper.append(data['robot']['gripper_data'])
-        end_pose.append(data['robot']['end_pose_data'])
+        state_joint.append(data['state']['joint_data'])
+        state_gripper.append(data['state']['gripper_data'])
+        state_end_pose.append(data['state']['end_pose_data'])
+
+        action_joint.append(data['action']['joint_data'])
+        action_gripper.append(data['action']['gripper_data'])
+        action_end_pose.append(data['action']['end_pose_data'])
 
     robot_dataset_re = {
         'index': index,
         'timestamp': timestamp,
-        'robot':{
-            'joint_data':joint,
-            'gripper_data':gripper,
-            'end_pose_data':end_pose
+        'state':{
+            'joint_data':state_joint,
+            'gripper_data':state_gripper,
+            'end_pose_data':state_end_pose
+        },
+        'action':{
+            'joint_data': action_joint,
+            'gripper_data': action_gripper,
+            'end_pose_data': action_end_pose
         }
     }
     dataset_dir = get_dataset_dir(is_record)
@@ -72,16 +83,24 @@ def save_episode_image(image_dataset, episode_name, is_record):
     exo_image_dataset = image_dataset['exo_image_dataset']
     exo_image_dataset_path = f"{dataset_dir}/{episode_name}/exo"
 
+    table_image_dataset = image_dataset['table_image_dataset']
+    table_image_dataset_path = f"{dataset_dir}/{episode_name}/table"
+
     if os.path.exists(wrist_image_dataset_path):
         shutil.rmtree(wrist_image_dataset_path)
-        os.mkdir(wrist_image_dataset_path)
+    os.mkdir(wrist_image_dataset_path)
 
     if os.path.exists(exo_image_dataset_path):
         shutil.rmtree(exo_image_dataset_path)
-        os.mkdir(exo_image_dataset_path)
+    os.mkdir(exo_image_dataset_path)
+
+    if os.path.exists(table_image_dataset_path):
+        shutil.rmtree(table_image_dataset_path)
+    os.mkdir(table_image_dataset_path)
 
     save_episode_image_to_jpeg(wrist_image_dataset, wrist_image_dataset_path)
     save_episode_image_to_jpeg(exo_image_dataset, exo_image_dataset_path)
+    save_episode_image_to_jpeg(table_image_dataset, table_image_dataset_path)
 
 
 def save_episode_image_to_jpeg(image_dataset, image_dataset_path):
